@@ -1,149 +1,96 @@
-# Neon_Kotlin_Arena_Game
-Kotlin game development practice.
+# Kotlin football game lab
 
-A Kotlin / Compose Multiplatform game built one learning step at a time.
+Learn Kotlin and Compose Multiplatform by building a small football game for
+Android, desktop, and iOS. Steer a FAMU runner past a BCU defender toward the
+Rattlers end zone. Each lesson adds a working piece of the game and explains
+how input, state, time, and Canvas drawing fit together.
 
-## Current step: position state and input
+The current game and full learning guide are on
+[`develop`](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/tree/develop).
+`master` contains the original drawing and tap experiments.
 
-The arena has two cyan circles. The first starts at 5% of the arena width and
-moves to wherever you click or tap. The second stays in the center. All three
-launchers use the same `App()` composable. Continuous movement, enemies,
-collisions, and the survival timer will be added in separate lessons.
+## Start here
 
-## Project map
+Read the [learning guide](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/blob/develop/README.md#start-here)
+for prerequisites, exercises, and an explanation of how one frame moves from
+input to the rendered screen. Some Kotlin basics help, including functions,
+data classes, nullable values, and lambdas.
 
-| Location | Purpose |
-| --- | --- |
-| `shared/src/commonMain/kotlin/com/stefan/neonarena/App.kt` | Shared Compose screen; our first learning entry point |
-| `shared/src/iosMain/` | Exposes the Compose screen to UIKit |
-| `androidApp/` | Android application and activity |
-| `desktopApp/` | Desktop window and entry point |
-| `iosApp/` | SwiftUI launcher and Xcode project |
-| `gradle/libs.versions.toml` | Dependency and plugin versions |
-
-## Run
-
-Open this directory in Android Studio with the Kotlin Multiplatform plugin.
-Use its bundled JDK as the Gradle JDK. The first sync needs internet access
-to download any missing dependencies.
-
-Desktop:
+To run the current game, clone the repository and select `develop`.
 
 ```sh
+git clone https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game.git
+cd Neon_Kotlin_Arena_Game
+git switch develop
 ./gradlew :desktopApp:run
 ```
 
-Android: run the `androidApp` module on an emulator or connected device.
-To build an APK without launching:
+The project has been built with JDK 21. Use the included Gradle wrapper.
+The first build needs internet access to download dependencies.
+
+For Android, open the project in Android Studio with the Kotlin Multiplatform
+plugin and run `androidApp` on a connected device or emulator. The project uses
+Android SDK 36 and supports devices on API 26 or later. Build an APK with
+`./gradlew :androidApp:assembleDebug`.
+
+For iOS, use macOS and Xcode. Open `iosApp/NeonArena.xcodeproj`, select the
+`NeonArena` scheme and an Apple Silicon simulator, then run. Physical devices
+need your signing team configured in Xcode.
+
+See the [setup and troubleshooting instructions](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/blob/develop/README.md#run)
+for SDK paths and test commands.
+
+## Play the game
+
+Use WASD or arrow keys on desktop. On a touchscreen, drag away from the initial
+finger-down position and hold to steer. Return to that position to stop steering,
+or release your finger. Mouse dragging works too. Tapping jumps the runner to
+the tapped spot as a coordinate-learning shortcut.
+
+The field scrolls automatically toward the Rattlers end zone. Avoid the chasing
+BCU defender and reach the far goal line once the camera reveals the end zone.
+A tackle or touchdown ends the run. Select Try again to restart.
+
+## Follow the lessons
+
+Each branch below is a runnable checkpoint. Open its link to browse the code,
+or use `git switch` with its branch name after saving your local experiments.
+Keep the [full guide](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/blob/develop/README.md#learning-sequence)
+open when trying older checkpoints, which contain earlier README versions.
+
+| Checkpoint | What you learn |
+| --- | --- |
+| [`bayne/project-setup`](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/tree/bayne/project-setup) | Platform launchers and a shared Compose screen |
+| [`bayne/draw-arena`](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/tree/bayne/draw-arena) | Canvas layout and drawing order |
+| [`bayne/draw-player`](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/tree/bayne/draw-player) | Coordinates, density, and shapes |
+| [`bayne/tap-input`](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/tree/bayne/tap-input) | Observable state and tap gestures |
+| [`bayne/player-state`](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/tree/bayne/player-state) | Data classes, extensions, and boundaries |
+| [`bayne/color-scheme`](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/tree/bayne/color-scheme) | Team colors and field markings |
+| [`bayne/game-loop`](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/tree/bayne/game-loop) | Frame timing, velocity, and elapsed seconds |
+| [`bayne/keyboard-controls`](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/tree/bayne/keyboard-controls) | Held keys, focus, and diagonal movement |
+| [`bayne/touch-controls`](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/tree/bayne/touch-controls) | Continuous steering from drag input |
+| [`bayne/chasing-enemy`](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/tree/bayne/chasing-enemy) | Direction vectors and pursuit |
+| [`bayne/collisions`](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/tree/bayne/collisions) | Circle contact, tackles, and restart |
+| [`bayne/end-zone`](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/tree/bayne/end-zone) | World coordinates, camera scrolling, and touchdown |
+| [`bayne/gameday-presentation`](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/tree/bayne/gameday-presentation) | Field paint and a fixed yardage display |
+| [`bayne/learning-guide`](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/tree/bayne/learning-guide) | Method explanations and a guide to the completed lessons |
+
+Try each lesson's experiment by predicting the result, changing one value, and
+running again. The [frame walkthrough](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/blob/develop/README.md#follow-one-frame)
+connects the files in the current game. The
+[merged lesson stack](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/stack/5)
+records the later changes in order.
+
+## Check your changes
+
+On `develop`, run the shared rule tests and desktop rendering tests.
 
 ```sh
-./gradlew :androidApp:assembleDebug
+./gradlew :shared:jvmTest :desktopApp:jvmTest
 ```
 
-iOS: open `iosApp/NeonArena.xcodeproj` in Xcode, select the `NeonArena`
-scheme and an iOS simulator, then run. Its build phase builds the shared
-Kotlin framework automatically. A physical device requires your signing team
-in Xcode. The included iOS targets support Apple Silicon simulators and
-ARM64 devices.
+The tests cover movement, input, boundaries, collisions, camera progress, and
+rendered frames. Desktop rendering tests save previews under
+`desktopApp/build/reports/field-camera/`.
 
-If Android Studio asks for an SDK path, use your local Android SDK installation.
-`local.properties` is machine-specific and ignored by Git.
-
-## Learning sequence
-
-1. **Draw the arena and player:** learn canvas coordinates and shapes.
-2. **Add movement:** represent position and connect input to it.
-3. **Introduce the game loop:** update using elapsed time.
-4. **Add an enemy:** move it toward the player.
-5. **Detect collisions:** compare distances and radii.
-6. **Survive 60 seconds:** add the timer, game-over state, and restart.
-
-Each lesson will add one small working change and explain it before we move on.
-
-## How the screen starts
-
-Start with `desktopApp/src/jvmMain/kotlin/com/stefan/neonarena/Main.kt`.
-Its `main()` function starts a Compose application, opens a window, and calls
-`App()` inside that window.
-
-Then read `shared/src/commonMain/kotlin/com/stefan/neonarena/App.kt`.
-`@Composable` lets this function describe UI. It now contains a `Canvas`,
-which gives us an area for drawing the arena and player.
-
-The Android activity and iOS view controller also call `App()`. That is how
-the platforms use the same screen. There is no game loop yet.
-
-## Lesson 1: coordinates and shapes
-
-This describes the original drawing step. The current code includes Stefan's
-second player and the input changes explained in lesson 2 below.
-
-Read `App.kt` from top to bottom:
-
-1. The modifiers fill the window, paint its background, and leave space for
-   system bars or cutouts with `safeDrawingPadding()`. Another `24.dp` of
-   padding separates the arena from the edges. The border marks its boundary,
-   and `clipToBounds()` keeps drawing inside it.
-2. Inside `Canvas`, `size.width` and `size.height` are the arena's measured
-   dimensions in pixels, after padding. The top-left is `(0, 0)`. Increasing
-   `x` goes right; increasing `y` goes down.
-3. `drawRect` paints the arena. Drawing happens in order, so the circle drawn
-   afterward appears on top of that rectangle.
-4. `Offset(size.width / 2f, size.height / 2f)` describes the center. The `f`
-   makes each divisor a `Float`, the number type used by drawing coordinates.
-5. `18.dp.toPx()` converts a density-independent radius to the pixels the
-   canvas expects. The circle's diameter is twice its radius.
-6. `drawCircle` uses that position, radius, and color to draw the player.
-
-Resizing the desktop window changes the canvas size. Compose draws it again
-using the new dimensions, so the circle stays centered. This is layout and
-drawing; we will introduce position state and movement in the next lesson.
-
-Try changing `x = size.width / 2f` to `x = size.width * 0.25f`, then run again.
-Predict the result first: the circle should move halfway from its current
-position toward the left edge, while keeping the same vertical position.
-Restore the centered position when you finish. As a second experiment, change
-the radius from `18.dp` to `28.dp`.
-
-Reference: [Compose drawing and coordinates](https://developer.android.com/develop/ui/compose/graphics/draw/overview).
-
-## Lesson 2: position state and input
-
-A drawing variable calculated from the canvas size always gives the same
-position at that size. To move the player in response to input, we need to
-store a position that can change.
-
-At the start of `App()`, `tappedPosition` uses `remember` and `mutableStateOf`.
-`remember` keeps the state through recomposition; `mutableStateOf` makes changes
-observable to Compose. Its type is `Offset?`, so it can start as `null` before
-the player has clicked or tapped. It resets when this composition is recreated
-or the app is relaunched.
-
-`pointerInput(Unit)` installs a gesture handler on the arena. `Unit` is a
-constant key, so position changes do not restart the handler.
-`detectTapGestures` gives us the click or tap position in local pixels. Because
-the handler is after the padding modifier, its coordinates match the canvas.
-We assign that position to `tappedPosition`.
-
-Inside the drawing block, `tappedPosition ?: Offset(...)` uses the stored
-position if it exists, or the original starting position otherwise. Reading
-this state in the drawing block lets Compose schedule another draw when it
-changes. The second circle still uses your original position calculation.
-
-Run the desktop app and click several places inside the arena. The first
-circle should jump to each click while the second stays centered. Click the
-second circle to see them overlap: it is drawn last, on top of the first.
-
-For an experiment, make the second circle a different color. Then try changing
-the assignment to `tappedPosition = Offset(position.x, size.height / 2f)`.
-Inside `pointerInput`, `size.height` is an integer pixel count. Dividing by
-`2f` gives the floating-point value `Offset` expects. Predict which direction
-the first player can move before running it.
-
-Positions are currently stored in pixels. Resizing can leave a clicked position
-outside the arena, and clicking near an edge can clip part of the circle.
-We will handle arena boundaries when we add continuous movement. For now,
-this lesson connects input to stored position and drawing.
-
-References: [Compose state](https://developer.android.com/develop/ui/compose/state)
-and [tap input](https://developer.android.com/develop/ui/compose/touch-input/pointer-input/tap-and-press).
+The source code is available under the [MIT license](LICENSE).
