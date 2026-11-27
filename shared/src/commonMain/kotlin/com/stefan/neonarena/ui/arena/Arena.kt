@@ -20,12 +20,13 @@ import com.stefan.neonarena.game.model.Player
 import com.stefan.neonarena.game.input.onArenaTap
 import com.stefan.neonarena.game.input.TouchState
 import com.stefan.neonarena.game.input.touchControls
+import com.stefan.neonarena.game.rendering.drawDefender
 import com.stefan.neonarena.game.rendering.drawFootballField
 import com.stefan.neonarena.game.rendering.drawPlayer
 import com.stefan.neonarena.ui.theme.GameColors
 
 /**
- * Composes the football field and player, and reports size and tap events.
+ * Composes the football field, defender, and runner, and reports input and size events.
  *
  * @author Stefan Bayne
  * @since 2026-11-27
@@ -33,6 +34,7 @@ import com.stefan.neonarena.ui.theme.GameColors
 @Composable
 fun Arena(
     player: Player?,
+    defender: Player?,
     touchState: TouchState,
     onArenaSizeChanged: (Size) -> Unit,
     onTap: (Offset, Size) -> Unit,
@@ -50,11 +52,12 @@ fun Arena(
             .onArenaTap(onTap)
             .touchControls(touchState)
             .semantics {
-                contentDescription = "Green football field with horizontal yard lines and an orange player. " +
+                contentDescription = "Green football field with an orange FAMU runner and a maroon-and-gold BCU defender. " +
                     "Drag to steer, use WASD or arrow keys, or tap to position the player."
             },
     ) {
         drawFootballField()
+        defender?.let { drawDefender(it) }
         player?.let { drawPlayer(it) }
     }
 }

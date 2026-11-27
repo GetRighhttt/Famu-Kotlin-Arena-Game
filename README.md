@@ -3,12 +3,13 @@ Kotlin game development practice.
 
 A Kotlin / Compose Multiplatform game built one learning step at a time.
 
-## Current step: touch controls
+## Current step: a chasing BCU defender
 
 The arena has one FAMU-orange player on a dark green football field with
 horizontal yard lines and a green boundary. The runner starts near the bottom.
 Drag across the field to steer at 240.dp per second; release to stop touch
-steering. WASD and arrow keys still work. Click or tap to reposition it. Its center is
+steering. WASD and arrow keys still work. Click or tap to reposition the runner. A maroon-and-gold BCU defender chases
+it at 140.dp per second. Tackles are a later lesson. The runner's center is
 constrained so the whole circle fits inside the arena. Resizing also updates
 its position to fit. All three launchers use the same `App()` composable.
 
@@ -16,7 +17,10 @@ its position to fit. All three launchers use the same `App()` composable.
 
 | Location | Purpose |
 | --- | --- |
-| `shared/src/commonMain/kotlin/com/stefan/neonarena/App.kt` | Owns player state and connects frame updates and arena events |
+| `shared/src/commonMain/kotlin/com/stefan/neonarena/App.kt` | Connects arena state, input, and frame updates |
+| `shared/src/commonMain/kotlin/com/stefan/neonarena/game/state/ArenaState.kt` | Owns both football players, field size, and frame updates |
+| `shared/src/commonMain/kotlin/com/stefan/neonarena/game/physics/DefenderMovement.kt` | Pursuit direction and travel distance |
+| `shared/src/commonMain/kotlin/com/stefan/neonarena/game/rendering/DefenderDrawing.kt` | Maroon defender body and gold outline |
 | `shared/src/commonMain/kotlin/com/stefan/neonarena/game/loop/GameLoop.kt` | Frame timing and elapsed-time updates |
 | `shared/src/commonMain/kotlin/com/stefan/neonarena/game/physics/PlayerMovement.kt` | Velocity-based movement within arena bounds |
 | `shared/src/commonMain/kotlin/com/stefan/neonarena/ui/arena/Arena.kt` | Canvas layout and arena rendering |
@@ -81,8 +85,8 @@ no co-author trailers.
 | `bayne/color-scheme` | FAMU player colors and BCU opposition palette |
 | `bayne/game-loop` | Frames, velocity, and elapsed time |
 | `bayne/keyboard-controls` | Held keys, focus, and diagonal movement |
-| `bayne/touch-controls` | Continuous movement from touch input (current) |
-| `bayne/chasing-enemy` | Direction vectors and enemy movement |
+| `bayne/touch-controls` | Continuous movement from touch input |
+| `bayne/chasing-enemy` | Direction vectors and a chasing BCU defender (current) |
 | `bayne/collisions` | Circle collisions and game states |
 | `bayne/survival-round` | The 60-second objective and restart |
 | `bayne/enemy-spawning` | Spawn timing and increasing difficulty |
@@ -98,8 +102,9 @@ Its `main()` function starts a Compose application, opens a window, and calls
 `App()` inside that window.
 
 Then read `shared/src/commonMain/kotlin/com/stefan/neonarena/App.kt`.
-`@Composable` lets this function describe UI. It owns player state and calls
-`Arena()`, which contains the canvas for drawing the arena and player.
+`@Composable` lets this function describe UI. It remembers `ArenaState` and
+connects input to frame updates. `Arena()` contains the canvas for drawing the
+field, defender, and runner.
 
 The Android activity and iOS view controller also call `App()`. That is how
 the platforms use the same screen. `App()` also calls `GameLoop()` to update
@@ -273,17 +278,20 @@ need no changes.
 Packages group the game by responsibility beneath `com.stefan.neonarena`:
 
 ```text
-App.kt                       Shared entry point and current state owner
+App.kt                       Shared entry point and composition
  game/
    model/Player.kt           Player geometry and arena boundary rules
    loop/GameLoop.kt          Frame timing
    physics/PlayerMovement.kt  Velocity-based movement
+   physics/DefenderMovement.kt  Pursuit direction and distance
+   state/ArenaState.kt       Runner, defender, and field state
    input/ArenaInput.kt       Pointer input expressed in arena coordinates
    input/KeyboardInput.kt    Keyboard events and focus
    input/KeyboardState.kt    Held keys and direction
    input/TouchInput.kt       Drag gesture events
    input/TouchState.kt       Drag displacement and direction
    rendering/PlayerDrawing.kt  Compose drawing for player geometry
+   rendering/DefenderDrawing.kt  BCU body and outline
  ui/
    arena/Arena.kt            Arena screen layout and scene composition
    theme/GameColors.kt       Shared rendering palette
@@ -316,6 +324,8 @@ not a claim about the original commit chronology. Future lessons branch from
 its latest merge. Select `develop` for the current integrated learning project.
 
 ## Color scheme: FAMU and BCU
+
+This describes the palette checkpoint before the defender lesson below.
 
 Branch: `bayne/color-scheme`, starting from `develop`.
 
@@ -574,3 +584,78 @@ returning to the dead zone, and gesture cancellation. These gesture checks used
 the 160.dp/s build. After Stefan requested 240.dp/s, all platform build checks
 and 22 unit tests passed again, and the updated build was installed and opened
 on the same device for hands-on speed tuning.
+
+## Lesson 10: a chasing BCU defender
+
+Branch: `bayne/chasing-enemy`, created from local `develop` after merging the
+completed touch lesson locally. Those lesson merges have not been pushed to
+remote `develop` yet.
+
+The runner starts near the bottom at 85% of the field height. A maroon defender
+with a gold outline starts near the top at 15%. Runner speed stays at 240.dp
+per second; defender speed is 140.dp per second. Both are converted to pixels
+in `App()`. The slower defender gives the runner room to evade it.
+
+### Direction toward a target
+
+`game/physics/DefenderMovement.kt` adds `Player.chasing(...)`. Both the runner
+and defender are football players, so they reuse the existing `Player` data
+class. The difference is how each one's direction is chosen:
+
+```text
+runner direction   = keyboard or touch input
+defender direction = (runner position - defender position) / distance
+```
+
+For a defender at `(100, 100)` and runner at `(400, 500)`, subtracting positions
+gives `(300, 400)`. Its length is 500. Dividing gives `(0.6, 0.8)`, a direction
+of length one pointing right and down. At 140 pixels per second over 0.02
+seconds, the defender moves 2.8 pixels: 1.68 right and 2.24 down.
+
+Subtracting the positions gives both direction and distance. Normalizing
+removes the distance, so being farther away does not make the defender faster.
+Each frame recalculates direction toward the runner's newest position.
+
+`travel = minOf(speed * elapsedSeconds, distance)` prevents crossing past the
+target on arrival. If the centers already match, the function returns without
+normalizing a zero-length vector. It then uses the existing arena constraints.
+
+### State and drawing
+
+`game/state/ArenaState.kt` owns the player objects and field size. It creates
+both players after a nonempty measurement, constrains both after a resize,
+and updates them each frame. The runner moves first; the defender then chases
+that updated position. Tapping repositions only the runner. Input and game-loop
+code remain separate from these world updates.
+
+`App()` remembers `ArenaState` and passes converted sizes and speeds into its
+updates. If density changes create a new state, `key(arenaState)` recreates the
+arena's measurement callback so the new state receives its field size.
+
+`game/rendering/DefenderDrawing.kt` reuses `drawPlayer` for the maroon body and
+adds a gold stroke inside its radius. The field is drawn first, the defender
+second, and the FAMU runner last. On complete overlap, the runner covers the
+defender. Move the runner again and the defender becomes visible as it follows.
+
+This lesson has pursuit but no collision outcome. The defender can overlap the
+runner and will wait at its center if the runner stays still. Tackles, losing
+a run, and restart behavior come in later lessons.
+
+Try standing still to watch the approach, then drag or use keys to evade it.
+Tap to another part of the field and watch the defender change direction.
+
+Experiment: change `defenderSpeed` in `App.kt` from `140.dp` to `200.dp`.
+Predict whether the defender can catch a runner moving straight at 240.dp/s,
+and how turning or reaching a boundary changes the situation.
+
+Pursuit tests check diagonal direction, arrival, matching centers, target
+changes, frame-rate consistency, and bounds. Arena-state tests check initial
+placement, tap ownership, update order, idle pursuit, and resizing both players.
+
+### Defender verification
+
+All 33 unit tests passed, as did the desktop JVM build, Android debug APK build,
+and shared Kotlin compilation for the iOS ARM64 simulator. On the connected
+Samsung SM-G990U, screenshot-based position checks confirmed the maroon defender
+was visible, advanced toward the runner, and turned toward a new target after
+a tap. The debug build was installed and reopened on that device for testing.
