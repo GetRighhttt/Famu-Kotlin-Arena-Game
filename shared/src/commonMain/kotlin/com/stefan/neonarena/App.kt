@@ -35,12 +35,22 @@ fun App() {
             x = size.width / 20f,
             y = size.height / 2f,
         )
+        val player2Position = Offset(
+            x = size.width - size.width / 2f,
+            y = size.height / 2f,
+        )
         val playerRadius = 18.dp.toPx()
 
         drawCircle(
             color = Color(0xFF66FFE3),
             radius = playerRadius,
             center = playerPosition,
+        )
+
+        drawCircle(
+            color = Color(0xFF66FFE3),
+            radius = playerRadius,
+            center = player2Position,
         )
     }
 }
