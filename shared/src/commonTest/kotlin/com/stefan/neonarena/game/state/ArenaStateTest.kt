@@ -2,6 +2,7 @@ package com.stefan.neonarena.game.state
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import com.stefan.neonarena.game.model.RunStatus
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -67,5 +68,69 @@ class ArenaStateTest {
         state.resize(Size(1000f, 1000f))
         assertEquals(Offset(182f, 82f), state.player?.position)
         assertEquals(Offset(182f, 82f), state.defender?.position)
+    }
+
+    @Test
+    fun tappingIntoTheDefenderTacklesImmediately() {
+        val state = ArenaState(18f)
+        state.resize(Size(1000f, 1000f))
+        state.movePlayerTo(assertNotNull(state.defender).position)
+        assertEquals(RunStatus.Tackled, state.status)
+        assertFalse(state.isRunning)
+    }
+
+    @Test
+    fun defenderContactEndsTheRunDuringAFrameUpdate() {
+        val state = ArenaState(18f)
+        state.resize(Size(1000f, 1000f))
+        state.movePlayerTo(Offset(500f, 190f))
+        assertEquals(RunStatus.Running, state.status)
+        state.update(Offset.Zero, 240f, 140f, 0.05f)
+        assertEquals(RunStatus.Tackled, state.status)
+    }
+
+    @Test
+    fun runnerContactIsCheckedBeforeDefenderMovement() {
+        val state = ArenaState(18f)
+        state.resize(Size(1000f, 1000f))
+        state.movePlayerTo(Offset(500f, 190f))
+        state.update(Offset(0f, -1f), 240f, 140f, 0.05f)
+        assertEquals(RunStatus.Tackled, state.status)
+        assertEquals(Offset(500f, 150f), state.defender?.position)
+    }
+
+    @Test
+    fun tackledRunIgnoresUpdatesAndTapMovement() {
+        val state = ArenaState(18f)
+        state.resize(Size(1000f, 1000f))
+        state.movePlayerTo(assertNotNull(state.defender).position)
+        val runner = state.player
+        val defender = state.defender
+        state.movePlayerTo(Offset(900f, 900f))
+        state.update(Offset(1f, 0f), 240f, 140f, 0.05f)
+        assertEquals(runner, state.player)
+        assertEquals(defender, state.defender)
+    }
+
+    @Test
+    fun restartResetsPositionsAndAllowsMovementAgain() {
+        val state = ArenaState(18f)
+        state.resize(Size(1000f, 1000f))
+        state.movePlayerTo(assertNotNull(state.defender).position)
+        state.restart()
+        assertEquals(RunStatus.Running, state.status)
+        assertTrue(state.isRunning)
+        assertEquals(Offset(500f, 850f), state.player?.position)
+        assertEquals(Offset(500f, 150f), state.defender?.position)
+        state.update(Offset(1f, 0f), 240f, 140f, 0.05f)
+        assertEquals(Offset(512f, 850f), state.player?.position)
+    }
+
+    @Test
+    fun resizingPlayersIntoContactAlsoEndsTheRun() {
+        val state = ArenaState(18f)
+        state.resize(Size(1000f, 1000f))
+        state.resize(Size(40f, 40f))
+        assertEquals(RunStatus.Tackled, state.status)
     }
 }
