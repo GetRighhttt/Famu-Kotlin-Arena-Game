@@ -3,10 +3,12 @@ Kotlin game development practice.
 
 A Kotlin / Compose Multiplatform game built one learning step at a time.
 
-## Current step: FAMU and BCU color scheme
+## Current step: the game loop
 
 The arena has one FAMU-orange player on a dark green football field with
-horizontal yard lines and a green boundary. Click or tap to reposition it. Its center is
+horizontal yard lines and a green boundary. The runner starts near the bottom
+and moves upfield automatically at 120.dp per second. Click or tap to reposition
+it and it continues running. Its center is
 constrained so the whole circle fits inside the arena. Resizing also updates
 its position to fit. All three launchers use the same `App()` composable.
 
@@ -14,7 +16,9 @@ its position to fit. All three launchers use the same `App()` composable.
 
 | Location | Purpose |
 | --- | --- |
-| `shared/src/commonMain/kotlin/com/stefan/neonarena/App.kt` | Owns player state and handles arena events |
+| `shared/src/commonMain/kotlin/com/stefan/neonarena/App.kt` | Owns player state and connects frame updates and arena events |
+| `shared/src/commonMain/kotlin/com/stefan/neonarena/game/loop/GameLoop.kt` | Frame timing and elapsed-time updates |
+| `shared/src/commonMain/kotlin/com/stefan/neonarena/game/physics/PlayerMovement.kt` | Velocity-based movement within arena bounds |
 | `shared/src/commonMain/kotlin/com/stefan/neonarena/ui/arena/Arena.kt` | Canvas layout and arena rendering |
 | `shared/src/commonMain/kotlin/com/stefan/neonarena/game/input/ArenaInput.kt` | Reusable tap input modifier extension |
 | `shared/src/commonMain/kotlin/com/stefan/neonarena/game/rendering/PlayerDrawing.kt` | Reusable player drawing extension |
@@ -70,8 +74,8 @@ no co-author trailers.
 | `bayne/draw-player` | Circle drawing and coordinates |
 | `bayne/tap-input` | Observable position and tap gestures |
 | `bayne/player-state` | Player data and arena boundaries |
-| `bayne/color-scheme` | FAMU player colors and BCU opposition palette (current) |
-| `bayne/game-loop` | Frames, velocity, and elapsed time |
+| `bayne/color-scheme` | FAMU player colors and BCU opposition palette |
+| `bayne/game-loop` | Frames, velocity, and elapsed time (current) |
 | `bayne/keyboard-controls` | Held keys, focus, and diagonal movement |
 | `bayne/touch-controls` | Continuous movement from touch input |
 | `bayne/chasing-enemy` | Direction vectors and enemy movement |
@@ -94,7 +98,8 @@ Then read `shared/src/commonMain/kotlin/com/stefan/neonarena/App.kt`.
 `Arena()`, which contains the canvas for drawing the arena and player.
 
 The Android activity and iOS view controller also call `App()`. That is how
-the platforms use the same screen. There is no game loop yet.
+the platforms use the same screen. `App()` also calls `GameLoop()` to update
+player state as frames arrive.
 
 ## Lesson 1: coordinates and shapes
 
@@ -175,7 +180,8 @@ and [tap input](https://developer.android.com/develop/ui/compose/touch-input/poi
 
 ## Lesson 3: player state and arena boundaries
 
-Branch: `bayne/player-state`.
+Branch: `bayne/player-state`. This section describes that checkpoint, before
+the automatic movement lesson below.
 
 A circle's position describes its center. If the center reaches `x = 0`, half
 the circle is outside the arena. A radius of 18 pixels means its center must
@@ -243,8 +249,8 @@ Read the files in this order:
 2. `Arena.kt` arranges the canvas, reports events, and draws the scene. It
    receives state and callbacks rather than owning a second copy of state.
 3. `ArenaInput.kt` adds `onArenaTap` to `Modifier`. It handles gesture details
-   and reports coordinates in the canvas's local pixel space. Its callback
-   is the `pointerInput` key, so a new callback replaces the gesture handler.
+   and reports coordinates in the canvas's local pixel space. It keeps the latest callback with `rememberUpdatedState`, while
+   `pointerInput(Unit)` keeps a gesture alive through frame updates.
 4. `PlayerDrawing.kt` adds `drawPlayer` to `DrawScope`, the receiver inside a
    canvas drawing block. It uses the player's geometry and accepts a color.
 
@@ -266,6 +272,8 @@ Packages group the game by responsibility beneath `com.stefan.neonarena`:
 App.kt                       Shared entry point and current state owner
  game/
    model/Player.kt           Player geometry and arena boundary rules
+   loop/GameLoop.kt          Frame timing
+   physics/PlayerMovement.kt  Velocity-based movement
    input/ArenaInput.kt       Pointer input expressed in arena coordinates
    rendering/PlayerDrawing.kt  Compose drawing for player geometry
  ui/
@@ -357,3 +365,66 @@ affect player position or collisions.
 
 Experiment: change `sections` from 10 to 20. Predict how many interior lines
 will be drawn and how far apart they will be before running the app.
+
+## Lesson 7: the game loop
+
+Branch: `bayne/game-loop`, created from `develop` after the color-scheme PR
+was merged. The runner now starts centered at 85% of the field height and
+moves toward the top. Negative y goes up in canvas coordinates.
+
+A game loop repeatedly updates the world. Compose handles drawing from state;
+our loop updates the player's state once per frame:
+
+```text
+wait for a frame -> measure elapsed time -> update position -> Compose draws
+```
+
+`game/loop/GameLoop.kt` uses `LaunchedEffect(running)` to own a coroutine.
+`withFrameNanos` suspends until the frame clock supplies a timestamp. The first
+frame establishes the starting time. Subtracting consecutive timestamps gives
+elapsed nanoseconds; dividing by 1,000,000,000 converts them to seconds.
+
+`rememberUpdatedState` keeps the update callback current without restarting the
+loop on each recomposition. Setting `running` to false or removing the loop from
+composition cancels it. `App()` enables it after the player and field size exist.
+This lesson does not yet connect `running` to app background or window focus;
+explicit pause and resume remains a later lesson.
+
+`game/physics/PlayerMovement.kt` applies:
+
+```text
+new position = current position + velocity * elapsed seconds
+```
+
+Velocity is an `Offset` in pixels per second. `App()` converts `120.dp` to pixels
+and uses it as the upward speed. At 60 frames per second, each update moves
+about 2.dp; at 120 frames per second, each moves about 1.dp. Over one second,
+both move about 120.dp, subject to the boundary.
+
+The loop caps each update at 0.05 seconds. A long stall therefore advances at
+most 6.dp on the next update instead of jumping across the field. This
+intentionally discards excess time; under sustained rates below 20 frames per
+second the simulation slows down. We are using a variable timestep for this
+lesson, not a fixed-timestep physics simulation.
+
+The movement extension returns a new `Player` and constrains it to the arena.
+At the top edge, the player stops one radius from the boundary. There is no
+bounce, score, or touchdown state yet. Clicking elsewhere moves the player
+there, and automatic movement continues from that point.
+
+The input modifier also uses `rememberUpdatedState` now. Restarting its gesture
+handler whenever an update callback changes could cancel taps during continuous
+frame updates. A constant `pointerInput(Unit)` key keeps an in-progress gesture
+alive while the callback stays current.
+
+Try running the desktop app. Watch the runner move upward, tap near the bottom
+to repeat the run, and resize the window while it moves. For an experiment,
+change `120.dp` to `240.dp`. Predict how long the same journey will take.
+Then try `velocity = Offset(runningSpeed, 0f)` to move horizontally.
+
+The movement tests compare one-second travel at 30 and 120 updates, zero elapsed
+time, and stopping at the top edge. Run them alongside the boundary tests with
+`./gradlew :shared:jvmTest`.
+
+References: [Compose effects](https://developer.android.com/develop/ui/compose/side-effects)
+and [Compose runtime frame APIs](https://developer.android.com/reference/kotlin/androidx/compose/runtime/package-summary).
