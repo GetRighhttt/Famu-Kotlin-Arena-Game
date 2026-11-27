@@ -3,9 +3,10 @@ Kotlin game development practice.
 
 A Kotlin / Compose Multiplatform game built one learning step at a time.
 
-## Current step: player state and arena boundaries
+## Current step: FAMU and BCU color scheme
 
-The arena has one cyan player. Click or tap to reposition it. Its center is
+The arena has one FAMU-orange player on a dark green football field with
+horizontal yard lines and a green boundary. Click or tap to reposition it. Its center is
 constrained so the whole circle fits inside the arena. Resizing also updates
 its position to fit. All three launchers use the same `App()` composable.
 
@@ -17,6 +18,8 @@ its position to fit. All three launchers use the same `App()` composable.
 | `shared/src/commonMain/kotlin/com/stefan/neonarena/ui/arena/Arena.kt` | Canvas layout and arena rendering |
 | `shared/src/commonMain/kotlin/com/stefan/neonarena/game/input/ArenaInput.kt` | Reusable tap input modifier extension |
 | `shared/src/commonMain/kotlin/com/stefan/neonarena/game/rendering/PlayerDrawing.kt` | Reusable player drawing extension |
+| `shared/src/commonMain/kotlin/com/stefan/neonarena/game/rendering/FootballFieldDrawing.kt` | Field surface and horizontal yard lines |
+| `shared/src/commonMain/kotlin/com/stefan/neonarena/ui/theme/GameColors.kt` | School colors and game surface colors |
 | `shared/src/commonMain/kotlin/com/stefan/neonarena/game/model/Player.kt` | Player data and arena boundary calculations |
 | `shared/src/commonTest/kotlin/com/stefan/neonarena/game/model/PlayerTest.kt` | Boundary calculation tests |
 | `shared/src/iosMain/` | Exposes the Compose screen to UIKit |
@@ -66,7 +69,8 @@ no co-author trailers.
 | `bayne/draw-arena` | Canvas layout and arena drawing |
 | `bayne/draw-player` | Circle drawing and coordinates |
 | `bayne/tap-input` | Observable position and tap gestures |
-| `bayne/player-state` | Player data and arena boundaries (current) |
+| `bayne/player-state` | Player data and arena boundaries |
+| `bayne/color-scheme` | FAMU player colors and BCU opposition palette (current) |
 | `bayne/game-loop` | Frames, velocity, and elapsed time |
 | `bayne/keyboard-controls` | Held keys, focus, and diagonal movement |
 | `bayne/touch-controls` | Continuous movement from touch input |
@@ -266,6 +270,7 @@ App.kt                       Shared entry point and current state owner
    rendering/PlayerDrawing.kt  Compose drawing for player geometry
  ui/
    arena/Arena.kt            Arena screen layout and scene composition
+   theme/GameColors.kt       Shared rendering palette
 ```
 
 The platform launchers stay in their platform modules or source sets.
@@ -293,3 +298,62 @@ The earlier two-player and double-tap experiments remain on `master` in their
 original commits. The rebuilt `develop` sequence is a teaching progression,
 not a claim about the original commit chronology. Future lessons branch from
 its latest merge. Select `develop` for the current integrated learning project.
+
+## Color scheme: FAMU and BCU
+
+Branch: `bayne/color-scheme`, starting from `develop`.
+
+The game is inspired by the annual [Florida Classic](https://floridaclassic.org/about/)
+between FAMU and Bethune-Cookman in Orlando. The intended direction is an
+arcade interpretation of that football rivalry, with FAMU as the player side
+and BCU as the opposition. The gameplay direction is a FAMU runner weaving
+through BCU football defenders. Scoring and round rules are still open; this
+lesson establishes the palette and field appearance. The original survival-game
+lesson sequence is a learning roadmap that we can adapt as football mechanics take shape.
+
+| Color | Web value | Game use |
+| --- | --- | --- |
+| FAMU Athletics orange | `#F4811F` | Player |
+| FAMU Athletics green | `#008344` | Arena boundary |
+| BCU Blood Maroon | `#860038` | Defined for future opposition |
+| BCU Sun Gold | `#FDB913` | Defined for future opposition accents |
+
+FAMU values use the HEX (WEB) entries on page 33 of the
+[FAMU Athletics style guide](https://famuathletics.com/pdf9/4488310.pdf).
+These are the athletics palette; university publications can use other
+orange and green specifications. BCU values use the primary colors on page 6
+of its [university brand guide](https://www.cookman.edu/creative-services/documents/b-cu-brand-guidelines.pdf).
+
+`ui/theme/GameColors.kt` owns these colors and two custom dark green surfaces:
+`#07160D` for the background and `#102C1D` for the arena. These surfaces are
+chosen for the game, not official school colors. BCU colors are defined but
+no opposition is drawn yet. Field markings use the custom pale color `#CEDFD2`.
+
+`Arena` reads the surface and border colors. `drawPlayer` defaults to FAMU
+orange and still accepts a color override. The `Player` data class and input
+code do not need school-color properties.
+
+In `Color(0xFFF4811F)`, the first `FF` is full opacity. The remaining six
+hexadecimal digits are the web color's red, green, and blue channels.
+
+Experiment: change the call to `drawPlayer(it, color = GameColors.bcuMaroon)`
+in `Arena.kt`, then restore it. The player changes sides visually without any
+change to its geometry or input handling.
+
+## Drawing the football field
+
+`game/rendering/FootballFieldDrawing.kt` adds `drawFootballField()` to
+`DrawScope`. The arena calls it before `drawPlayer()`, so the runner appears
+on top of the field markings.
+
+The field is divided into ten equal sections. `size.height / sections` gives
+one section's height in pixels. For line indices 1 through 9, multiplying that
+height by the index gives the y-coordinate. Each line runs from x = 0 to the
+canvas width, with the same y-coordinate at both ends. That makes it horizontal.
+
+Positions scale with the canvas size; line thickness uses `1.dp.toPx()` so it
+stays consistent across display densities. The markings are visual and do not
+affect player position or collisions.
+
+Experiment: change `sections` from 10 to 20. Predict how many interior lines
+will be drawn and how far apart they will be before running the app.

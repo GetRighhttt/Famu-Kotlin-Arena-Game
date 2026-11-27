@@ -11,7 +11,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -19,10 +18,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import com.stefan.neonarena.game.model.Player
 import com.stefan.neonarena.game.input.onArenaTap
+import com.stefan.neonarena.game.rendering.drawFootballField
 import com.stefan.neonarena.game.rendering.drawPlayer
+import com.stefan.neonarena.ui.theme.GameColors
 
 /**
- * Draws the arena and reports its size and tap positions to the state owner.
+ * Composes the football field and player, and reports size and tap events.
  *
  * @author Stefan Bayne
  * @since 2026-11-27
@@ -37,18 +38,19 @@ fun Arena(
     Canvas(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFF090D19))
+            .background(GameColors.background)
             .safeDrawingPadding()
             .padding(24.dp)
-            .border(1.dp, Color(0xFF27665F))
+            .border(1.dp, GameColors.famuGreen)
             .clipToBounds()
             .onSizeChanged { onArenaSizeChanged(it.toSize()) }
             .onArenaTap(onTap)
             .semantics {
-                contentDescription = "Arena with a cyan player. Tap to position the player."
+                contentDescription = "Green football field with horizontal yard lines and an orange player. " +
+                    "Tap to position the player."
             },
     ) {
-        drawRect(color = Color(0xFF101B2A))
+        drawFootballField()
         player?.let { drawPlayer(it) }
     }
 }
