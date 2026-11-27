@@ -2,12 +2,13 @@
 
 A Compose Multiplatform game built as a sequence of runnable lessons.
 
-## Current lesson: draw-player
+## Current lesson: tap-input
 
-The arena is drawn first, followed by a cyan circle. `Offset` gives its center
-in pixels. Half the canvas width and height places it in the middle.
-`18.dp.toPx()` converts the radius for the display density. Positive x goes
-right; positive y goes down. Resizing recalculates the center.
+Click or tap to move one player. `remember` retains its position across
+recomposition, and `mutableStateOf` makes updates observable. The nullable
+position starts as `null`; `?:` falls back to the center until the first tap.
+`detectTapGestures` reports local pixel coordinates matching the canvas.
+Input changes state, and Compose redraws using that state.
 
 ## Run
 
@@ -22,8 +23,9 @@ Use JDK 17 or newer and configure your Android SDK in ignored `local.properties`
 
 ## Experiment
 
-Change the x-coordinate to `size.width * 0.25f`. Predict where the circle
-will appear. Then change its radius and compare the results.
+Change the assignment to `tappedPosition = Offset(position.x, size.height / 2f)`.
+Predict which direction the player can move. Click near an edge to observe
+clipping; the next lesson adds arena bounds. No second player is needed.
 
 ## Lesson branches
 
