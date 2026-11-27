@@ -1,43 +1,295 @@
-# Neon Arena
+# Neon_Kotlin_Arena_Game
+Kotlin game development practice.
 
-A Compose Multiplatform game built as a sequence of runnable lessons.
+A Kotlin / Compose Multiplatform game built one learning step at a time.
 
-## Current lesson: tap-input
+## Current step: player state and arena boundaries
 
-Click or tap to move one player. `remember` retains its position across
-recomposition, and `mutableStateOf` makes updates observable. The nullable
-position starts as `null`; `?:` falls back to the center until the first tap.
-`detectTapGestures` reports local pixel coordinates matching the canvas.
-Input changes state, and Compose redraws using that state.
+The arena has one cyan player. Click or tap to reposition it. Its center is
+constrained so the whole circle fits inside the arena. Resizing also updates
+its position to fit. All three launchers use the same `App()` composable.
+
+## Project map
+
+| Location | Purpose |
+| --- | --- |
+| `shared/src/commonMain/kotlin/com/stefan/neonarena/App.kt` | Owns player state and handles arena events |
+| `shared/src/commonMain/kotlin/com/stefan/neonarena/ui/arena/Arena.kt` | Canvas layout and arena rendering |
+| `shared/src/commonMain/kotlin/com/stefan/neonarena/game/input/ArenaInput.kt` | Reusable tap input modifier extension |
+| `shared/src/commonMain/kotlin/com/stefan/neonarena/game/rendering/PlayerDrawing.kt` | Reusable player drawing extension |
+| `shared/src/commonMain/kotlin/com/stefan/neonarena/game/model/Player.kt` | Player data and arena boundary calculations |
+| `shared/src/commonTest/kotlin/com/stefan/neonarena/game/model/PlayerTest.kt` | Boundary calculation tests |
+| `shared/src/iosMain/` | Exposes the Compose screen to UIKit |
+| `androidApp/` | Android application and activity |
+| `desktopApp/` | Desktop window and entry point |
+| `iosApp/` | SwiftUI launcher and Xcode project |
+| `gradle/libs.versions.toml` | Dependency and plugin versions |
 
 ## Run
+
+Open this directory in Android Studio with the Kotlin Multiplatform plugin.
+Use its bundled JDK as the Gradle JDK. The first sync needs internet access
+to download any missing dependencies.
+
+Desktop:
 
 ```sh
 ./gradlew :desktopApp:run
 ```
 
-Android: `./gradlew :androidApp:assembleDebug` builds an APK without an emulator.
-iOS: open `iosApp/NeonArena.xcodeproj` in Xcode. All launchers call the shared
-`App()` in `shared/src/commonMain/kotlin/com/stefan/neonarena/App.kt`.
-Use JDK 17 or newer and configure your Android SDK in ignored `local.properties`.
+Android: run the `androidApp` module on an emulator or connected device.
+To build an APK without launching:
 
-## Experiment
+```sh
+./gradlew :androidApp:assembleDebug
+```
 
-Change the assignment to `tappedPosition = Offset(position.x, size.height / 2f)`.
-Predict which direction the player can move. Click near an edge to observe
-clipping; the next lesson adds arena bounds. No second player is needed.
+iOS: open `iosApp/NeonArena.xcodeproj` in Xcode, select the `NeonArena`
+scheme and an iOS simulator, then run. Its build phase builds the shared
+Kotlin framework automatically. A physical device requires your signing team
+in Xcode. The included iOS targets support Apple Silicon simulators and
+ARM64 devices.
 
-## Lesson branches
+If Android Studio asks for an SDK path, use your local Android SDK installation.
+`local.properties` is machine-specific and ignored by Git.
 
-Checkpoints are cumulative. Each branch starts from the preceding lesson's
-merge into `develop`, and each has its own runnable implementation and README.
+## Learning sequence
 
-1. `bayne/project-setup`: platform launchers and a shared screen.
-2. `bayne/draw-arena`: a canvas and arena boundary.
-3. `bayne/draw-player`: a circle and drawing coordinates.
-4. `bayne/tap-input`: position state and tap gestures.
-5. `bayne/player-state`: player data, bounds, and responsibility-based packages.
+The initial drawing and tap experiments are complete. Each new lesson branches
+from the updated `develop`, then merges back after review and checks. `master`
+holds stable milestones. Branch names use `bayne/<lesson-name>`. Commits have
+no co-author trailers.
 
-The original experimental history remains on `master`. This lesson sequence
-was reconstructed from those experiments; it is not their original chronology.
-Commits use Stefan Bayne's authorship and contain no co-author trailers.
+| Branch | Lesson |
+| --- | --- |
+| `bayne/project-setup` | Platform launchers and shared screen |
+| `bayne/draw-arena` | Canvas layout and arena drawing |
+| `bayne/draw-player` | Circle drawing and coordinates |
+| `bayne/tap-input` | Observable position and tap gestures |
+| `bayne/player-state` | Player data and arena boundaries (current) |
+| `bayne/game-loop` | Frames, velocity, and elapsed time |
+| `bayne/keyboard-controls` | Held keys, focus, and diagonal movement |
+| `bayne/touch-controls` | Continuous movement from touch input |
+| `bayne/chasing-enemy` | Direction vectors and enemy movement |
+| `bayne/collisions` | Circle collisions and game states |
+| `bayne/survival-round` | The 60-second objective and restart |
+| `bayne/enemy-spawning` | Spawn timing and increasing difficulty |
+| `bayne/pause-and-resume` | Pausing time and handling app lifecycle |
+| `bayne/game-feedback` | A compact HUD and visual feedback |
+
+Each lesson will add one small working change and explain it before we move on.
+
+## How the screen starts
+
+Start with `desktopApp/src/jvmMain/kotlin/com/stefan/neonarena/Main.kt`.
+Its `main()` function starts a Compose application, opens a window, and calls
+`App()` inside that window.
+
+Then read `shared/src/commonMain/kotlin/com/stefan/neonarena/App.kt`.
+`@Composable` lets this function describe UI. It owns player state and calls
+`Arena()`, which contains the canvas for drawing the arena and player.
+
+The Android activity and iOS view controller also call `App()`. That is how
+the platforms use the same screen. There is no game loop yet.
+
+## Lesson 1: coordinates and shapes
+
+This describes the original drawing step before the later input and cleanup
+lessons. Drawing now lives in `Arena.kt` and `PlayerDrawing.kt`.
+
+Read `App.kt` from top to bottom:
+
+1. The modifiers fill the window, paint its background, and leave space for
+   system bars or cutouts with `safeDrawingPadding()`. Another `24.dp` of
+   padding separates the arena from the edges. The border marks its boundary,
+   and `clipToBounds()` keeps drawing inside it.
+2. Inside `Canvas`, `size.width` and `size.height` are the arena's measured
+   dimensions in pixels, after padding. The top-left is `(0, 0)`. Increasing
+   `x` goes right; increasing `y` goes down.
+3. `drawRect` paints the arena. Drawing happens in order, so the circle drawn
+   afterward appears on top of that rectangle.
+4. `Offset(size.width / 2f, size.height / 2f)` describes the center. The `f`
+   makes each divisor a `Float`, the number type used by drawing coordinates.
+5. `18.dp.toPx()` converts a density-independent radius to the pixels the
+   canvas expects. The circle's diameter is twice its radius.
+6. `drawCircle` uses that position, radius, and color to draw the player.
+
+Resizing the desktop window changes the canvas size. Compose draws it again
+using the new dimensions, so the circle stays centered. This is layout and
+drawing; we will introduce position state and movement in the next lesson.
+
+Try changing `x = size.width / 2f` to `x = size.width * 0.25f`, then run again.
+Predict the result first: the circle should move halfway from its current
+position toward the left edge, while keeping the same vertical position.
+Restore the centered position when you finish. As a second experiment, change
+the radius from `18.dp` to `28.dp`.
+
+Reference: [Compose drawing and coordinates](https://developer.android.com/develop/ui/compose/graphics/draw/overview).
+
+## Lesson 2: position state and input
+
+This describes the tap experiment before the player-state lesson below.
+
+A drawing variable calculated from the canvas size always gives the same
+position at that size. To move the player in response to input, we need to
+store a position that can change.
+
+At the start of `App()`, `tappedPosition` uses `remember` and `mutableStateOf`.
+`remember` keeps the state through recomposition; `mutableStateOf` makes changes
+observable to Compose. Its type is `Offset?`, so it can start as `null` before
+the player has clicked or tapped. It resets when this composition is recreated
+or the app is relaunched.
+
+`pointerInput(Unit)` installs a gesture handler on the arena. `Unit` is a
+constant key, so position changes do not restart the handler.
+`detectTapGestures` gives us the click or tap position in local pixels. Because
+the handler is after the padding modifier, its coordinates match the canvas.
+We assign that position to `tappedPosition`.
+
+Inside the drawing block, `tappedPosition ?: Offset(...)` uses the stored
+position if it exists, or the original starting position otherwise. Reading
+this state in the drawing block lets Compose schedule another draw when it
+changes. The second circle still uses your original position calculation.
+
+Run the desktop app and click several places inside the arena. The first
+circle should jump to each click while the second stays centered. Click the
+second circle to see them overlap: it is drawn last, on top of the first.
+
+For an experiment, make the second circle a different color. Then try changing
+the assignment to `tappedPosition = Offset(position.x, size.height / 2f)`.
+Inside `pointerInput`, `size.height` is an integer pixel count. Dividing by
+`2f` gives the floating-point value `Offset` expects. Predict which direction
+the first player can move before running it.
+
+Positions are currently stored in pixels. Resizing can leave a clicked position
+outside the arena, and clicking near an edge can clip part of the circle.
+We will handle arena boundaries when we add continuous movement. For now,
+this lesson connects input to stored position and drawing.
+
+References: [Compose state](https://developer.android.com/develop/ui/compose/state)
+and [tap input](https://developer.android.com/develop/ui/compose/touch-input/pointer-input/tap-and-press).
+
+## Lesson 3: player state and arena boundaries
+
+Branch: `bayne/player-state`.
+
+A circle's position describes its center. If the center reaches `x = 0`, half
+the circle is outside the arena. A radius of 18 pixels means its center must
+stay at least 18 pixels from every edge:
+
+```text
+radius <= x <= arena width - radius
+radius <= y <= arena height - radius
+```
+
+`Player.kt` groups `position` and `radius` in an immutable data class. Both use
+pixels. `App()` converts `18.dp` to pixels before creating the player.
+`constrainedTo()` uses `coerceIn(minimum, maximum)` to limit each coordinate,
+then returns a `copy` with that position. It does not change the original
+player. Assigning that copy to Compose state updates what the canvas draws.
+
+For example, in a 200-pixel-wide arena with radius 18, a tap at `x = 199`
+produces a center at `x = 182`. The circle's right edge reaches 200 exactly.
+
+In `App.kt`, player state starts as `null` until the arena reports its
+measured size. `App()` creates the initial player at 5% of the arena width
+and halfway down. On later size changes it constrains the existing position.
+A tap also constrains the requested position before storing it.
+
+`Arena()` receives that state and reports events through callbacks. Its
+`onSizeChanged` modifier reports the measured canvas bounds. Its
+`onArenaTap` modifier extension reports the tap position and bounds together.
+The drawing extension reads the player's position and radius.
+
+The player resets when this composition is recreated or the app restarts.
+
+If the arena becomes smaller than a player's diameter, the usual coordinate
+range cannot fit the circle. `radiusIn()` temporarily reduces its visible
+radius to half the shorter arena dimension. Its stored radius stays the same,
+so the circle returns to normal size when space is available. A zero-sized
+arena has a visible radius of zero. After resizing, players stay at their
+constrained positions rather than returning to an earlier out-of-bounds tap.
+
+Try these checks in the desktop app:
+
+1. Click each corner. The player should stay fully inside.
+2. Position it near the bottom-right, then shrink the window. Its center
+   should move inward as needed. Enlarge the window and it should stay there.
+
+Experiment: change `18.dp` to `28.dp`. Before running, calculate the maximum
+center x-coordinate for a 200-pixel-wide arena with a 28-pixel radius.
+The answer is 172. In the app, `dp` is converted to pixels, so the actual pixel
+radius depends on display density.
+
+Run the boundary tests with:
+
+```sh
+./gradlew :shared:jvmTest
+```
+
+## Separating state, input, and drawing
+
+The two-player experiment is complete. The current lesson uses one player,
+with `Player` still holding its geometry and boundary rules.
+
+Read the files in this order:
+
+1. `App.kt` owns the observable player state. It decides how taps and size
+   changes update that state.
+2. `Arena.kt` arranges the canvas, reports events, and draws the scene. It
+   receives state and callbacks rather than owning a second copy of state.
+3. `ArenaInput.kt` adds `onArenaTap` to `Modifier`. It handles gesture details
+   and reports coordinates in the canvas's local pixel space. Its callback
+   is the `pointerInput` key, so a new callback replaces the gesture handler.
+4. `PlayerDrawing.kt` adds `drawPlayer` to `DrawScope`, the receiver inside a
+   canvas drawing block. It uses the player's geometry and accepts a color.
+
+An extension adds callable behavior to an existing type without editing that
+type. `Modifier.onArenaTap` can be used on another arena, and
+`DrawScope.drawPlayer` can draw another player when we need one again.
+`Arena` is a composable because it owns layout; `Player` remains a data class
+because it owns player geometry.
+
+Experiment: change the call in `Arena.kt` to
+`drawPlayer(it, color = Color.Magenta)`. The input and boundary code should
+need no changes.
+
+## Package structure
+
+Packages group the game by responsibility beneath `com.stefan.neonarena`:
+
+```text
+App.kt                       Shared entry point and current state owner
+ game/
+   model/Player.kt           Player geometry and arena boundary rules
+   input/ArenaInput.kt       Pointer input expressed in arena coordinates
+   rendering/PlayerDrawing.kt  Compose drawing for player geometry
+ ui/
+   arena/Arena.kt            Arena screen layout and scene composition
+```
+
+The platform launchers stay in their platform modules or source sets.
+`commonTest` mirrors the source packages, so player tests live in
+`game/model/PlayerTest.kt`.
+
+This is a small project layout, not a universal game-engine standard. Package
+names are lowercase and directories follow those names. Input, model, and
+rendering have different owners so later lessons have clear places to grow.
+There is no generic utilities package or extra architecture layer. The current
+model uses Compose's `Offset` and `Size`; it is shared across the supported
+platforms, but is not yet independent of Compose geometry.
+
+See [Kotlin source organization conventions](https://kotlinlang.org/docs/coding-conventions.html#source-code-organization).
+
+## Reconstructed lesson history
+
+The first four lesson branches separate the original combined implementation
+into runnable checkpoints: project setup, arena drawing, player drawing, and
+tap input. Each checkpoint has code and explanations for just that stage.
+`bayne/player-state` builds on them with one player, boundary tests, reusable
+input and drawing extensions, and the package structure above.
+
+The earlier two-player and double-tap experiments remain on `master` in their
+original commits. The rebuilt `develop` sequence is a teaching progression,
+not a claim about the original commit chronology. Future lessons branch from
+its latest merge. Select `develop` for the current integrated learning project.

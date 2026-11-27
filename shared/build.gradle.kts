@@ -3,7 +3,8 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 /**
  * Configures the Kotlin code shared by Android, desktop, and iOS.
  *
- * commonMain contains the shared screen. Platform targets compile that code for Android, the JVM, and Apple
+ * commonMain contains the screen and player rules; commonTest tests those
+ * rules. Platform targets compile that code for Android, the JVM, and Apple
  * ARM64. The iOS targets export a static NeonShared framework for Swift.
  *
  * @author Stefan Bayne
@@ -44,6 +45,9 @@ kotlin {
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.ui)
+        }
+        commonTest.dependencies {
+            implementation(kotlin("test"))
         }
     }
 }
