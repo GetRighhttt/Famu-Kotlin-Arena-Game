@@ -54,6 +54,28 @@ class FieldRenderingTest {
     }
 
     @Test
+    fun portraitMatchupStaysInPlaceWhileTheFieldScrolls() {
+        val scene = ImageComposeScene(width = 360, height = 720) { App() }
+        try {
+            scene.render(0).close()
+            scene.render(16_666_667L).close()
+            scene.render(33_333_334L).use { before ->
+                save(before, "portrait-drive.png")
+                for (frame in 3..62) scene.render(frame * 16_666_667L).close()
+                scene.render(63 * 16_666_667L).use { after ->
+                    Bitmap.makeFromImage(before).use { first ->
+                        Bitmap.makeFromImage(after).use { second ->
+                            val header = 0 until 40
+                            assertTrue(header.any { y -> (10..50).any { x -> first.getColor(x, y) == 0xFFF4811F.toInt() } })
+                            assertTrue(header.all { y -> (0 until 360).all { x -> first.getColor(x, y) == second.getColor(x, y) } })
+                        }
+                    }
+                }
+            }
+        } finally { scene.close() }
+    }
+
+    @Test
     fun farEndZoneRendersGoalpostsAndLettering() {
         val scene = ImageComposeScene(width = 960, height = 640) {
             val textMeasurer = rememberTextMeasurer()

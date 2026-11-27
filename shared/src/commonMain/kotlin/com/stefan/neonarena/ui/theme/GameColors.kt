@@ -23,6 +23,9 @@ object GameColors {
 
     val footballLeather = Color(0xFF854425)
     val background = Color(0xFF07160D)
-    val arenaSurface = Color(0xFF102C1D)
+    val arenaSurface = Color(0xFF184930)
+    val turfBand = Color(0xFF1C5237)
+    val cream = Color(0xFFFBF0D7)
+    val rail = Color(0xFF344A3E)
     val fieldLine = Color(0xFFCEDFD2)
 }

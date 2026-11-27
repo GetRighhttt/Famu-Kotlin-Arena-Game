@@ -1,6 +1,7 @@
 package com.stefan.neonarena.ui.arena
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -53,40 +54,44 @@ fun Arena(
     modifier: Modifier = Modifier,
 ) {
     val textMeasurer = rememberTextMeasurer()
-    Box(
+    Column(
         modifier = modifier.fillMaxSize()
             .background(GameColors.background)
             .safeDrawingPadding()
-            .padding(24.dp),
+            .padding(horizontal = 12.dp, vertical = 4.dp),
     ) {
-        Canvas(
-            modifier = Modifier.fillMaxSize()
-                .border(1.dp, GameColors.famuGreen)
-                .clipToBounds()
-                .onSizeChanged { onArenaSizeChanged(it.toSize()) }
-                .then(if (isRunning) Modifier.onArenaTap(onTap).touchControls(touchState) else Modifier)
-                .semantics {
-                    contentDescription = "Football field with a FAMU runner and BCU defender. " +
-                        when (status) {
-                            RunStatus.Tackled -> "Run stopped after a tackle."
-                            RunStatus.Touchdown -> "Touchdown. Run completed."
-                            RunStatus.Running -> "Drag or use WASD or arrow keys to steer on the scrolling field."
-                        }
-                },
-        ) {
-            translate(top = -camera.offsetY) {
-                drawFootballField(camera.fieldSize, camera.endZoneHeight, textMeasurer)
-                defender?.let { drawDefender(it, player?.position) }
-                player?.let { drawPlayer(it) }
-            }
-        }
-        if (status != RunStatus.Running) {
-            Box(
-                modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.65f)).padding(16.dp),
-                contentAlignment = Alignment.Center,
+        MatchupStrip()
+        Box(Modifier.weight(1f)) {
+            Canvas(
+                modifier = Modifier.fillMaxSize()
+                    .border(1.dp, GameColors.rail)
+                    .clipToBounds()
+                    .onSizeChanged { onArenaSizeChanged(it.toSize()) }
+                    .then(if (isRunning) Modifier.onArenaTap(onTap).touchControls(touchState) else Modifier)
+                    .semantics {
+                        contentDescription = "Football field with a FAMU runner and BCU defender. " +
+                            when (status) {
+                                RunStatus.Tackled -> "Run stopped after a tackle."
+                                RunStatus.Touchdown -> "Touchdown. Run completed."
+                                RunStatus.Running -> "Drag or use WASD or arrow keys to steer on the scrolling field."
+                            }
+                    },
             ) {
-                RunResultOverlay(status, onRestart)
+                translate(top = -camera.offsetY) {
+                    drawFootballField(camera.fieldSize, camera.endZoneHeight, textMeasurer)
+                    defender?.let { drawDefender(it, player?.position) }
+                    player?.let { drawPlayer(it) }
+                }
+            }
+            if (status != RunStatus.Running) {
+                Box(
+                    modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.65f)).padding(16.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    RunResultOverlay(status, onRestart)
+                }
             }
         }
+        DriveStrip(player, camera)
     }
 }

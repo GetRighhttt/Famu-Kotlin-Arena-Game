@@ -3,7 +3,7 @@ Kotlin game development practice.
 
 A Kotlin / Compose Multiplatform game built one learning step at a time.
 
-## Current step: a scrolling field and Rattlers end zone
+## Current step: game-day presentation
 
 The field is three viewport heights long. A camera starts at the near end and
 advances toward the Rattlers end zone at 32.dp per second. The runner steers
@@ -95,7 +95,8 @@ no co-author trailers.
 | `bayne/touch-controls` | Continuous movement from touch input |
 | `bayne/chasing-enemy` | Direction vectors and a chasing BCU defender |
 | `bayne/collisions` | Circle contact, tackles, and restart |
-| `bayne/end-zone` | Camera scrolling, field markings, and touchdown (current) |
+| `bayne/end-zone` | Camera scrolling, field markings, and touchdown |
+| `bayne/gameday-presentation` | Stadium paint and a fixed yardage display (current) |
 | `bayne/survival-round` | The 60-second objective and restart |
 | `bayne/enemy-spawning` | Spawn timing and increasing difficulty |
 | `bayne/pause-and-resume` | Pausing time and handling app lifecycle |
@@ -831,3 +832,16 @@ App rendering test measured approximately 32 pixels of yard-line movement over
 one second at density 1. Desktop-sized screenshots confirmed numbered yard
 lines, goalposts, and RATTLERS! lettering. The desktop app was reopened with
 this build. Scrolling pauses on a tackle or touchdown until Try again.
+
+
+## Lesson 13 — Painting the field and reading the drive
+
+The turf bands, Orlando midfield diamond, and end-zone stripes are field paint.
+Their positions use the same world coordinates as the yard lines. Compose draws
+the matchup above the Canvas and the yardage strip below it, so those stay in
+place when the camera moves.
+
+The strip measures from the front edge of the runner to the far goal line.
+Dividing by the distance between the goal lines gives a fraction of the
+100-yard playing field. The readout rounds up to the next whole yard. Steer
+downfield for a moment and watch the marker move back toward the start.
