@@ -2,11 +2,11 @@
 
 A Compose Multiplatform game built as a sequence of runnable lessons.
 
-## Current lesson: project-setup
+## Current lesson: draw-arena
 
-Each platform has a small launcher that calls the same `App()` composable.
-The shared screen displays a title on a dark background. There is no arena or
-player yet. Gradle modules separate platform launchers from shared code.
+`Canvas` supplies a drawing area. Its modifiers leave room for system insets
+and 24.dp of outer padding. `drawRect` fills the arena; a border marks its
+boundary. Drawing coordinates start at the canvas top-left after padding.
 
 ## Run
 
@@ -21,8 +21,8 @@ Use JDK 17 or newer and configure your Android SDK in ignored `local.properties`
 
 ## Experiment
 
-Change the title font size from `32.sp` to `48.sp`, then run again.
-The title grows while staying centered.
+Change `24.dp` to `48.dp`. Predict whether the arena grows or shrinks.
+Run again and compare its distance from the window edges.
 
 ## Lesson branches
 
