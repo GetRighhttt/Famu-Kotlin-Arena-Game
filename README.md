@@ -9,6 +9,16 @@ The current game and full learning guide are on
 [`develop`](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/tree/develop).
 `master` contains the original drawing and tap experiments.
 
+![Desktop gameplay showing the FAMU runner, BCU defender, yard marks, and yards-to-go display](docs/images/desktop-game.png)
+
+<details>
+<summary>See the portrait layout</summary>
+
+<p>Rendered at 360 × 720 to show how the shared screen fits a narrow viewport.</p>
+<img src="docs/images/portrait-game.png" width="270" alt="Portrait game layout with the matchup above the field and yards remaining below it">
+
+</details>
+
 ## Start here
 
 Read the [learning guide](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/blob/develop/README.md#start-here)
@@ -76,10 +86,21 @@ open when trying older checkpoints, which contain earlier README versions.
 | [`bayne/learning-guide`](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/tree/bayne/learning-guide) | Method explanations and a guide to the completed lessons |
 
 Try each lesson's experiment by predicting the result, changing one value, and
-running again. The [frame walkthrough](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/blob/develop/README.md#follow-one-frame)
-connects the files in the current game. The
-[merged lesson stack](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/stack/5)
+running again. The [merged lesson stack](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/stack/5)
 records the later changes in order.
+
+The current game follows this path on each frame. Read the
+[frame walkthrough](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/blob/develop/README.md#follow-one-frame)
+for a worked example of the movement calculation.
+
+```mermaid
+flowchart LR
+    input["Held keys or drag"] --> direction["Direction"]
+    direction --> update["ArenaState.update"]
+    time["Elapsed seconds"] --> update
+    update --> state["Player and camera state"]
+    state --> drawing["Canvas drawing"]
+```
 
 ## Check your changes
 
