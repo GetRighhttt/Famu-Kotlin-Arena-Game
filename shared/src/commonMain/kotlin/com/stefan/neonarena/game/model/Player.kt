@@ -17,6 +17,11 @@ data class Player(
     fun radiusIn(arenaSize: Size): Float =
         minOf(radius, arenaSize.minDimension / 2f).coerceAtLeast(0f)
 
+    /**
+     * Keep the center at least one visible radius from every edge.
+     * copy creates a new Player value. Replacing ArenaState's observable player with
+     * that value lets Compose see the position change and schedule another draw.
+     */
     fun constrainedTo(arenaSize: Size): Player {
         val visibleRadius = radiusIn(arenaSize)
         return copy(
