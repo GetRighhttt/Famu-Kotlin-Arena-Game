@@ -18,8 +18,12 @@ import com.stefan.neonarena.ui.theme.GameColors
 /**
  * Draws the world-sized field, numbered yard lines, one-yard hash marks, end-zone lettering, and goalposts.
  *
- * Coordinates belong to the full field, not the visible canvas. The caller
- * applies camera translation and clipping before composing players above it.
+ * Coordinates belong to the full field. The caller applies camera translation
+ * and clipping before drawing players above it.
+ *
+ * Subtract both end zones, then divide by ten to find one ten-yard section.
+ * Divide again by ten for one yard. These distances use world pixels, so marks
+ * scroll together. Stroke widths use dp converted to pixels for display density.
  *
  * @author Stefan Bayne
  * @since 2026-11-27

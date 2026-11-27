@@ -1,9 +1,40 @@
-# Neon_Kotlin_Arena_Game
-Kotlin game development practice.
+# Kotlin football game lab
 
-A Kotlin / Compose Multiplatform game built one learning step at a time.
+Learn Kotlin and Compose Multiplatform by building a small football game for
+Android, desktop, and iOS. Steer the FAMU runner past a BCU defender toward the
+Rattlers end zone. The lessons follow how input changes state, how time moves
+players, and how Canvas turns their positions into a screen.
 
-## Current step: game-day presentation
+## Start here
+
+You will need some Kotlin basics, including functions, data classes, nullable
+values, and lambdas. The lessons explain the Compose state and drawing code
+as it appears. Each checkpoint is a runnable version of the project.
+The first drawing sections cover several small setup branches. Later lesson
+numbers follow the branch order in the table.
+
+1. [Run the game](#run) and try the controls below.
+2. [Choose a checkpoint](#learning-sequence) and read its lesson here. The table
+   links to the code at each stage. Keep this guide open when checking out an
+   older branch, since that branch contains an earlier version of the README.
+3. Follow [one frame through the game](#follow-one-frame) to connect the files.
+4. Try a lesson's experiment. Predict the result, change one value, then run
+   again and compare what you see with your prediction.
+
+Use WASD or arrow keys on desktop. On touchscreens, drag away from the point
+where your finger first touched the field and hold to keep moving. Return to
+that point to stop, or release your finger. A mouse drag works too. A tap jumps
+the runner to that spot as a coordinate-learning shortcut. Choose Try again
+after a tackle or touchdown.
+
+The latest published gameplay checkpoint is
+[`bayne/gameday-presentation`](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/tree/bayne/gameday-presentation).
+The lesson sections below describe their own checkpoints. For example, the
+tap lesson has circles and the latest checkpoint has football uniforms.
+
+The source code is available under the [MIT license](LICENSE).
+
+## Current gameplay
 
 The field is three viewport heights long. A camera starts at the near end and
 advances toward the Rattlers end zone at 32.dp per second. The runner steers
@@ -49,24 +80,37 @@ run, so a stopped result screen is intentionally stationary.
 
 ## Run
 
+The project has been built with JDK 21. Use the Gradle wrapper included here
+so Gradle's version matches the project. Android builds use SDK 36 with a
+minimum device API of 26. iOS builds require macOS and Xcode. The checked-in
+versions are in [the version catalog](gradle/libs.versions.toml).
+
+For the latest published gameplay checkpoint, clone and select its branch.
+
+```sh
+git clone https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game.git
+cd Neon_Kotlin_Arena_Game
+git switch bayne/gameday-presentation
+```
+
 Open this directory in Android Studio with the Kotlin Multiplatform plugin.
 Use its bundled JDK as the Gradle JDK. The first sync needs internet access
 to download any missing dependencies.
 
-Desktop:
+Start the desktop game from the repository root.
 
 ```sh
 ./gradlew :desktopApp:run
 ```
 
-Android: run the `androidApp` module on an emulator or connected device.
-To build an APK without launching:
+For Android, run the `androidApp` module on an emulator or connected device.
+To build an APK from the terminal, run the following command.
 
 ```sh
 ./gradlew :androidApp:assembleDebug
 ```
 
-iOS: open `iosApp/NeonArena.xcodeproj` in Xcode, select the `NeonArena`
+For iOS, open `iosApp/NeonArena.xcodeproj` in Xcode, select the `NeonArena`
 scheme and an iOS simulator, then run. Its build phase builds the shared
 Kotlin framework automatically. A physical device requires your signing team
 in Xcode. The included iOS targets support Apple Silicon simulators and
@@ -75,34 +119,85 @@ ARM64 devices.
 If Android Studio asks for an SDK path, use your local Android SDK installation.
 `local.properties` is machine-specific and ignored by Git.
 
+Run the shared rule tests and desktop rendering tests from the repository root.
+
+```sh
+./gradlew :shared:jvmTest :desktopApp:jvmTest
+```
+
+Shared tests cover input direction, movement, boundaries, collisions, and the
+camera. Desktop tests render Compose frames and check scrolling. The rendering
+tests save PNGs under `desktopApp/build/reports/field-camera/`. Gradle's HTML
+test reports are under each module's `build/reports/tests/` directory.
+
+If a build fails before compiling, run `./gradlew --version` and check which
+JDK Gradle is using. For an Android SDK error, set the SDK path in Android
+Studio or in your local `local.properties`. To use a physical Android device,
+enable USB debugging and accept its debugging prompt when connecting.
+
 ## Learning sequence
 
-The initial drawing and tap experiments are complete. Each new lesson branches
-from the updated `develop`, then merges back after review and checks. `master`
-holds stable milestones. Branch names use `bayne/<lesson-name>`. Commits have
-no co-author trailers.
+The published branches below are checkpoints in order. Open a branch link to
+browse its source, or select it locally with `git switch bayne/draw-player`,
+for example. Commit or stash any experiments before switching branches.
+
+Work branches use `bayne/<lesson-name>` and start from local `develop` after
+the preceding lesson is integrated. Later lessons are reviewed in a
+[PR stack](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/stack/5),
+where each PR targets the preceding lesson. The default `master` branch
+contains the original experiments.
 
 | Branch | Lesson |
 | --- | --- |
-| `bayne/project-setup` | Platform launchers and shared screen |
-| `bayne/draw-arena` | Canvas layout and arena drawing |
-| `bayne/draw-player` | Circle drawing and coordinates |
-| `bayne/tap-input` | Observable position and tap gestures |
-| `bayne/player-state` | Player data and arena boundaries |
-| `bayne/color-scheme` | FAMU player colors and BCU opposition palette |
-| `bayne/game-loop` | Frames, velocity, and elapsed time |
-| `bayne/keyboard-controls` | Held keys, focus, and diagonal movement |
-| `bayne/touch-controls` | Continuous movement from touch input |
-| `bayne/chasing-enemy` | Direction vectors and a chasing BCU defender |
-| `bayne/collisions` | Circle contact, tackles, and restart |
-| `bayne/end-zone` | Camera scrolling, field markings, and touchdown |
-| `bayne/gameday-presentation` | Stadium paint and a fixed yardage display (current) |
-| `bayne/survival-round` | The 60-second objective and restart |
-| `bayne/enemy-spawning` | Spawn timing and increasing difficulty |
-| `bayne/pause-and-resume` | Pausing time and handling app lifecycle |
-| `bayne/game-feedback` | A compact HUD and visual feedback |
+| [`bayne/project-setup`](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/tree/bayne/project-setup) | [Platform launchers and shared screen](#how-the-screen-starts) |
+| [`bayne/draw-arena`](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/tree/bayne/draw-arena) | [Canvas layout and arena drawing](#lesson-1-coordinates-and-shapes) |
+| [`bayne/draw-player`](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/tree/bayne/draw-player) | [Circle drawing and coordinates](#lesson-1-coordinates-and-shapes) |
+| [`bayne/tap-input`](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/tree/bayne/tap-input) | [Observable position and tap gestures](#lesson-2-position-state-and-input) |
+| [`bayne/player-state`](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/tree/bayne/player-state) | [Player data and arena boundaries](#lesson-3-player-state-and-arena-boundaries) |
+| [`bayne/color-scheme`](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/tree/bayne/color-scheme) | [FAMU player colors and BCU opposition palette](#color-scheme-famu-and-bcu) |
+| [`bayne/game-loop`](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/tree/bayne/game-loop) | [Frames, velocity, and elapsed time](#lesson-7-the-game-loop) |
+| [`bayne/keyboard-controls`](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/tree/bayne/keyboard-controls) | [Held keys, focus, and diagonal movement](#lesson-8-keyboard-controls) |
+| [`bayne/touch-controls`](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/tree/bayne/touch-controls) | [Continuous movement from touch input](#lesson-9-touch-controls) |
+| [`bayne/chasing-enemy`](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/tree/bayne/chasing-enemy) | [Direction vectors and a chasing BCU defender](#lesson-10-a-chasing-bcu-defender) |
+| [`bayne/collisions`](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/tree/bayne/collisions) | [Circle contact, tackles, and restart](#lesson-11-tackles-and-restart) |
+| [`bayne/end-zone`](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/tree/bayne/end-zone) | [Camera scrolling, field markings, and touchdown](#lesson-12-scrolling-a-world-through-a-viewport) |
+| [`bayne/gameday-presentation`](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/tree/bayne/gameday-presentation) | [Stadium paint and a fixed yardage display (current)](#lesson-13-painting-the-field-and-reading-the-drive) |
 
-Each lesson will add one small working change and explain it before we move on.
+Possible future lessons include timed defender spawning, pausing on focus loss,
+and feedback for tackles and touchdowns. Each would introduce one concept with
+an experiment and a runnable checkpoint.
+
+## Follow one frame
+
+Read these files in order on the latest gameplay checkpoint.
+
+1. [App.kt](shared/src/commonMain/kotlin/com/stefan/neonarena/App.kt) remembers
+   the arena and input state. `remember` keeps the same object when Compose
+   runs App again. `mutableStateOf` makes changes observable to Compose.
+2. [GameLoop.kt](shared/src/commonMain/kotlin/com/stefan/neonarena/game/loop/GameLoop.kt)
+   waits for the next frame and passes elapsed seconds to App's callback.
+3. [KeyboardState.kt](shared/src/commonMain/kotlin/com/stefan/neonarena/game/input/KeyboardState.kt)
+   and [TouchState.kt](shared/src/commonMain/kotlin/com/stefan/neonarena/game/input/TouchState.kt)
+   convert held input to a direction. App uses touch while a drag is active.
+   Multiplying direction by speed gives velocity in pixels per second.
+4. [ArenaState.update](shared/src/commonMain/kotlin/com/stefan/neonarena/game/state/ArenaState.kt)
+   advances the camera, moves the runner, checks contact, then moves the defender
+   and checks again. `copy` creates a new Player. Assigning it to observable
+   state lets Compose schedule the work that reads that state again.
+5. [Arena.kt](shared/src/commonMain/kotlin/com/stefan/neonarena/ui/arena/Arena.kt)
+   draws field paint and players through the camera offset. The matchup and
+   yardage strips sit outside that translation. A stopped run shows its result.
+
+Canvas uses pixels with the origin at the top left. Positive x goes right and
+positive y goes down. App converts dp values to pixels using display density.
+`Offset` holds an x and y pair. The code uses it for positions, displacement,
+and direction, so the meaning depends on the calculation.
+
+For a concrete frame, a runner moving right at 240 pixels per second for
+1/60 second moves 4 pixels. If the camera advances 0.53 pixels in that frame,
+the runner also moves 0.53 pixels upfield in world coordinates. Subtracting
+the new camera offset cancels that carried movement on screen. The visible
+change is the 4-pixel steering movement while the field slides downward.
 
 ## How the screen starts
 
@@ -176,17 +271,17 @@ We assign that position to `tappedPosition`.
 Inside the drawing block, `tappedPosition ?: Offset(...)` uses the stored
 position if it exists, or the original starting position otherwise. Reading
 this state in the drawing block lets Compose schedule another draw when it
-changes. The second circle still uses your original position calculation.
+changes.
 
-Run the desktop app and click several places inside the arena. The first
-circle should jump to each click while the second stays centered. Click the
-second circle to see them overlap: it is drawn last, on top of the first.
+Run the desktop app and click several places inside the arena. The circle
+should jump to each click. Close and reopen the game to see it start centered
+again, because the tap position was held in memory for that composition.
 
-For an experiment, make the second circle a different color. Then try changing
-the assignment to `tappedPosition = Offset(position.x, size.height / 2f)`.
+For an experiment, change the assignment to
+`tappedPosition = Offset(position.x, size.height / 2f)`.
 Inside `pointerInput`, `size.height` is an integer pixel count. Dividing by
 `2f` gives the floating-point value `Offset` expects. Predict which direction
-the first player can move before running it.
+the player can move before running it.
 
 Positions are currently stored in pixels. Resizing can leave a clicked position
 outside the arena, and clicking near an edge can clip part of the circle.
@@ -257,8 +352,8 @@ Run the boundary tests with:
 
 ## Separating state, input, and drawing
 
-The two-player experiment is complete. The current lesson uses one player,
-with `Player` still holding its geometry and boundary rules.
+At the `bayne/player-state` checkpoint, one player holds its geometry and
+boundary rules in `Player`. Read this section on that branch.
 
 Read the files in this order:
 
@@ -290,7 +385,7 @@ Packages group the game by responsibility beneath `com.stefan.neonarena`:
 App.kt                       Shared entry point and composition
  game/
    model/Player.kt           Player geometry and arena boundary rules
-   model/RunStatus.kt        Running or tackled state
+   model/RunStatus.kt        Running, tackled, or touchdown state
    loop/GameLoop.kt          Frame timing
    physics/PlayerMovement.kt  Velocity-based movement
    physics/DefenderMovement.kt  Pursuit direction and distance
@@ -303,10 +398,12 @@ App.kt                       Shared entry point and composition
    input/TouchInput.kt       Drag gesture events
    input/TouchState.kt       Drag displacement and direction
    rendering/PlayerDrawing.kt  Compose drawing for player geometry
-   rendering/DefenderDrawing.kt  BCU body and outline
+   rendering/DefenderDrawing.kt  BCU uniform and heading
+   rendering/FootballFieldDrawing.kt  Yard lines and field paint
  ui/
    arena/Arena.kt            Arena screen layout and scene composition
-   arena/RunResultOverlay.kt    Tackle result and restart
+   arena/RunResultOverlay.kt    Run result and restart
+   arena/GamedayStrips.kt     Matchup and distance to goal
    theme/GameColors.kt       Shared rendering palette
 ```
 
@@ -314,12 +411,10 @@ The platform launchers stay in their platform modules or source sets.
 `commonTest` mirrors the source packages, so player tests live in
 `game/model/PlayerTest.kt`.
 
-This is a small project layout, not a universal game-engine standard. Package
-names are lowercase and directories follow those names. Input, model, and
-rendering have different owners so later lessons have clear places to grow.
-There is no generic utilities package or extra architecture layer. The current
-model uses Compose's `Offset` and `Size`; it is shared across the supported
-platforms, but is not yet independent of Compose geometry.
+This project groups files by the work they do. Package names are lowercase,
+and directories follow those names. Input, model, and rendering each have a
+place for later lessons to grow. The shared model uses Compose's `Offset`
+and `Size` for geometry.
 
 See [Kotlin source organization conventions](https://kotlinlang.org/docs/coding-conventions.html#source-code-organization).
 
@@ -332,9 +427,8 @@ tap input. Each checkpoint has code and explanations for just that stage.
 input and drawing extensions, and the package structure above.
 
 The earlier two-player and double-tap experiments remain on `master` in their
-original commits. The rebuilt `develop` sequence is a teaching progression,
-not a claim about the original commit chronology. Future lessons branch from
-its latest merge. Select `develop` for the current integrated learning project.
+original commits. The rebuilt lesson sequence follows the concepts in teaching order. Select a
+published branch from the table above to study that checkpoint.
 
 ## Color scheme: FAMU and BCU
 
@@ -466,9 +560,7 @@ and [Compose runtime frame APIs](https://developer.android.com/reference/kotlin/
 
 This describes the keyboard-only checkpoint before the touch lesson below.
 
-Branch: `bayne/keyboard-controls`, created from local `develop` after merging
-the completed `bayne/game-loop` lesson locally. The game-loop merge has not
-been pushed to remote `develop` yet.
+Checkpoint `bayne/keyboard-controls` builds on the game-loop lesson.
 
 The runner now stays still until you hold WASD or an arrow key. Stefan increased
 the running speed from 120.dp to 160.dp per second. Each frame
@@ -532,9 +624,7 @@ and [requesting focus](https://developer.android.com/develop/ui/compose/touch-in
 
 ## Lesson 9: touch controls
 
-Branch: `bayne/touch-controls`, created from local `develop` after merging the
-completed keyboard-controls lesson locally. The game-loop and keyboard lesson
-merges have not been pushed to remote `develop` yet.
+Checkpoint `bayne/touch-controls` builds on keyboard controls.
 
 Drag on the field to steer. The initial pointer-down position becomes the
 anchor once Compose recognizes a drag. Direction is the normalized displacement
@@ -679,9 +769,7 @@ a tap. The debug build was installed and reopened on that device for testing.
 
 This describes the collision checkpoint before the scrolling-field lesson.
 
-Branch: `bayne/collisions`. The completed chasing lesson was saved as commit
-`8cd8a98` and merged into local `develop` before creating this branch. These
-local lesson merges have not been pushed to remote `develop` yet.
+Checkpoint `bayne/collisions` builds on the chasing-defender lesson.
 
 Two circles touch when the distance between their centers is at most their
 combined radii. For radii 18 and 18, first contact is at distance 36:
@@ -701,7 +789,7 @@ Both quantities are nonnegative, so this gives the same result. Equality counts
 as contact. The radii come from `radiusIn(arenaSize)`, matching the circles
 actually drawn when the arena is very small.
 
-`game/model/RunStatus.kt` names the two current states: `Running` and `Tackled`.
+`game/model/RunStatus.kt` names the two states at this checkpoint, `Running` and `Tackled`.
 `ArenaState` owns their transitions. It checks contact after tap positioning,
 after resizing, and before and after the movement steps in a frame. Checking
 immediately after the runner moves prevents the defender's later movement from
@@ -713,7 +801,8 @@ frame loop is cancelled, and field input modifiers are removed. Removing input
 also clears stored keyboard and touch state. State methods independently reject
 movement while tackled, so an extra callback cannot move a stopped run.
 
-`ui/arena/RunResultOverlay.kt` shows a compact result card above the dimmed field.
+`ui/arena/TackleOverlay.kt` shows a compact result card above the dimmed field
+at this checkpoint. The end-zone lesson renames it to `RunResultOverlay.kt`.
 Its Try again action uses Compose's clickable behavior and button semantics,
 so it supports tapping and keyboard activation. The arena stays measured under
 the card; its players stop where contact was detected.
@@ -745,13 +834,14 @@ readable text and button layout. The debug build is installed on that device.
 
 ## Lesson 12: scrolling a world through a viewport
 
-Branch: `bayne/end-zone`. The open remote PR stack is unchanged. This lesson
-starts from the collision merge in local `develop` and is not committed yet.
+Checkpoint `bayne/end-zone` adds camera scrolling after the collision lesson.
+[PR #9](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/pull/9) contains
+this step and targets `bayne/collisions`.
 
-The earlier desktop build had no camera code. This lesson creates a field
+This lesson creates a field
 three times the visible canvas height, then shows only one screen-sized part
-of it. This is a rendering lesson: world positions describe where things are
-on the whole field; screen positions describe where the viewport draws them.
+of it. World positions describe where things are on the whole field. Screen
+positions describe where the viewport draws them.
 
 `game/state/FieldCamera.kt` stores the viewport size and its top edge in world
 coordinates, `offsetY`. At the start, this is `fieldHeight - viewportHeight`,
@@ -805,8 +895,8 @@ priority if the defender is touching it at the same update. Both Touchdown and
 Tackled stop the loop and use `RunResultOverlay` for restart. Restart resets the
 camera to the near end as well as resetting both players and stored input.
 
-The field markings are an arcade representation of football. This lesson does
-not model a ball, official scoring rules, downs, or goalpost collisions.
+The runner carries a painted football. Circle contact decides tackles, and
+reaching the far goal line decides touchdowns in this arcade version.
 
 ### Experiments and verification
 
@@ -834,7 +924,11 @@ lines, goalposts, and RATTLERS! lettering. The desktop app was reopened with
 this build. Scrolling pauses on a tackle or touchdown until Try again.
 
 
-## Lesson 13 — Painting the field and reading the drive
+## Lesson 13: painting the field and reading the drive
+
+Checkpoint `bayne/gameday-presentation` builds on the scrolling field.
+[PR #10](https://github.com/GetRighhttt/Neon_Kotlin_Arena_Game/pull/10) contains
+this step and targets `bayne/end-zone`.
 
 The turf bands, Orlando midfield diamond, and end-zone stripes are field paint.
 Their positions use the same world coordinates as the yard lines. Compose draws

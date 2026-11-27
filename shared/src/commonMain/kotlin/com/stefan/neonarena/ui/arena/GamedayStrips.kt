@@ -59,6 +59,12 @@ private fun TeamLabel(name: String, accent: Color) {
     }
 }
 
+/**
+ * Convert the runner's leading-edge distance to a fraction of the playing field.
+ * The two end zones are excluded from the 100-yard length. Multiplying the fraction
+ * by 100 gives yards remaining. Subtracting it from one gives progress toward goal.
+ * ceil rounds the readout up so a fraction of a yard still appears as one yard.
+ */
 @Composable
 internal fun DriveStrip(player: Player?, camera: FieldCamera) {
     val playingHeight = camera.fieldSize.height - 2f * camera.endZoneHeight

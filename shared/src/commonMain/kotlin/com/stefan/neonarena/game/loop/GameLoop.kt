@@ -15,6 +15,13 @@ import kotlinx.coroutines.isActive
  * for the frame clock suspends the coroutine rather than blocking the UI thread.
  * Leaving composition or changing running cancels the current loop.
  *
+ * LaunchedEffect starts a coroutine tied to the running value. Each suspension
+ * resumes at a frame timestamp in nanoseconds. Divide the difference by one
+ * billion to get seconds. At 60 frames per second, 240 pixels per second moves
+ * about 4 pixels per update. The cap discards excess time after a long stall.
+ * rememberUpdatedState lets this coroutine call the latest callback without
+ * restarting its timestamp each time App recomposes.
+ *
  * @author Stefan Bayne
  * @since 2026-11-27
  */

@@ -21,6 +21,12 @@ fun DrawScope.drawPlayer(player: Player, color: Color = GameColors.famuOrange) {
     drawFootballPlayer(player, jersey = color, helmet = GameColors.famuGreen, heading = 0f, carriesBall = true)
 }
 
+/**
+ * Draw the uniform around local (0, 0), with the helmet pointing up.
+ * Scale those local coordinates from the 18-unit art radius to the visible radius,
+ * rotate them clockwise by heading degrees, then place them at the world position.
+ * The transform block scopes these changes to this player drawing.
+ */
 internal fun DrawScope.drawFootballPlayer(player: Player, jersey: Color, helmet: Color, heading: Float, carriesBall: Boolean) {
     val scale = player.radiusIn(size) / 18f
     if (scale <= 0f) return

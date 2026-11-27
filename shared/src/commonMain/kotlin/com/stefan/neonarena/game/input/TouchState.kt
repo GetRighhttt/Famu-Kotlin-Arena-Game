@@ -36,6 +36,11 @@ class TouchState(private val deadZone: Float) {
         displacement = Offset.Zero
     }
 
+    /**
+     * Treat the drag as a direction from the original finger-down position.
+     * Inside the dead zone, return zero. Outside it, dividing by distance gives a
+     * unit vector, so dragging farther changes the heading without increasing speed.
+     */
     fun direction(): Offset {
         val distance = displacement.getDistance()
         return if (!isDragging || distance <= deadZone || distance == 0f) {

@@ -35,6 +35,12 @@ class KeyboardState {
         heldKeys = emptySet()
     }
 
+    /**
+     * Combine opposing keys before dividing by the vector's length.
+     * Right and down give (1, 1), whose length is about 1.414. Dividing produces
+     * about (0.707, 0.707), so diagonal movement covers the same distance as straight
+     * movement. Return zero directly because it has no length to divide by.
+     */
     fun direction(): Offset {
         val left = Key.A in heldKeys || Key.DirectionLeft in heldKeys
         val right = Key.D in heldKeys || Key.DirectionRight in heldKeys

@@ -24,12 +24,22 @@ class FieldCamera(private val fieldScreens: Float = 3f) {
     val maxOffset: Float get() = fieldSize.height - viewport.height
     val endZoneHeight: Float get() = viewport.height * 0.12f
 
+    /**
+     * Keep the same fraction of camera travel remaining after a resize.
+     * For example, halfway through a 1200-pixel range becomes halfway through a
+     * 1600-pixel range. The initial measurement starts at the near end.
+     */
     fun resize(bounds: Size) {
         val fraction = if (maxOffset > 0f) offsetY / maxOffset else 1f
         viewport = bounds
         offsetY = maxOffset * fraction
     }
 
+    /**
+     * Returns actual camera travel in pixels for this frame.
+     * Near zero, the camera may have less distance left than speed * elapsedSeconds.
+     * The runner uses this clamped travel so both stop advancing together.
+     */
     fun advance(speed: Float, elapsedSeconds: Float): Float {
         val previous = offsetY
         offsetY = (offsetY - speed * elapsedSeconds).coerceIn(0f, maxOffset)
@@ -37,6 +47,12 @@ class FieldCamera(private val fieldScreens: Float = 3f) {
     }
 
     fun reset() { offsetY = maxOffset }
+    /**
+     * A world point at y = 1400 appears at screen y = 200 when offsetY is 1200.
+     */
     fun worldToScreen(position: Offset): Offset = position - Offset(0f, offsetY)
+    /**
+     * Reverse the camera translation for input measured inside the visible canvas.
+     */
     fun screenToWorld(position: Offset): Offset = position + Offset(0f, offsetY)
 }

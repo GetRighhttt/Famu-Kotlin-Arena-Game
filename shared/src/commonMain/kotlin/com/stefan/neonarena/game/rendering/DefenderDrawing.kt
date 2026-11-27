@@ -10,6 +10,9 @@ import kotlin.math.atan2
 /**
  * Turns the maroon-and-gold defender toward the runner. The uniform faces up
  * at zero degrees, so a target directly below it needs a half turn.
+ * atan2 normally measures from the positive x axis. Passing (dx, -dy) measures
+ * clockwise from up, which matches the uniform. Multiplying radians by 180 / PI
+ * gives the degrees that DrawScope.rotate expects.
  *
  * @author Stefan Bayne
  * @since 2026-11-27
