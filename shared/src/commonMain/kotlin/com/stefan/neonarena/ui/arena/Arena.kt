@@ -47,7 +47,7 @@ fun Arena(
             .onArenaTap(onTap)
             .semantics {
                 contentDescription = "Green football field with horizontal yard lines and an orange player. " +
-                    "Tap to position the player."
+                    "Use WASD or arrow keys to move, or tap to position the player."
             },
     ) {
         drawFootballField()

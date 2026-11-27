@@ -3,12 +3,12 @@ Kotlin game development practice.
 
 A Kotlin / Compose Multiplatform game built one learning step at a time.
 
-## Current step: the game loop
+## Current step: keyboard controls
 
 The arena has one FAMU-orange player on a dark green football field with
-horizontal yard lines and a green boundary. The runner starts near the bottom
-and moves upfield automatically at 120.dp per second. Click or tap to reposition
-it and it continues running. Its center is
+horizontal yard lines and a green boundary. The runner starts near the bottom.
+Hold WASD or arrow keys to move at 160.dp per second; release the keys to stop.
+Click or tap to reposition it. Its center is
 constrained so the whole circle fits inside the arena. Resizing also updates
 its position to fit. All three launchers use the same `App()` composable.
 
@@ -20,6 +20,8 @@ its position to fit. All three launchers use the same `App()` composable.
 | `shared/src/commonMain/kotlin/com/stefan/neonarena/game/loop/GameLoop.kt` | Frame timing and elapsed-time updates |
 | `shared/src/commonMain/kotlin/com/stefan/neonarena/game/physics/PlayerMovement.kt` | Velocity-based movement within arena bounds |
 | `shared/src/commonMain/kotlin/com/stefan/neonarena/ui/arena/Arena.kt` | Canvas layout and arena rendering |
+| `shared/src/commonMain/kotlin/com/stefan/neonarena/game/input/KeyboardState.kt` | Held movement keys and normalized direction |
+| `shared/src/commonMain/kotlin/com/stefan/neonarena/game/input/KeyboardInput.kt` | Keyboard events and arena focus |
 | `shared/src/commonMain/kotlin/com/stefan/neonarena/game/input/ArenaInput.kt` | Reusable tap input modifier extension |
 | `shared/src/commonMain/kotlin/com/stefan/neonarena/game/rendering/PlayerDrawing.kt` | Reusable player drawing extension |
 | `shared/src/commonMain/kotlin/com/stefan/neonarena/game/rendering/FootballFieldDrawing.kt` | Field surface and horizontal yard lines |
@@ -75,8 +77,8 @@ no co-author trailers.
 | `bayne/tap-input` | Observable position and tap gestures |
 | `bayne/player-state` | Player data and arena boundaries |
 | `bayne/color-scheme` | FAMU player colors and BCU opposition palette |
-| `bayne/game-loop` | Frames, velocity, and elapsed time (current) |
-| `bayne/keyboard-controls` | Held keys, focus, and diagonal movement |
+| `bayne/game-loop` | Frames, velocity, and elapsed time |
+| `bayne/keyboard-controls` | Held keys, focus, and diagonal movement (current) |
 | `bayne/touch-controls` | Continuous movement from touch input |
 | `bayne/chasing-enemy` | Direction vectors and enemy movement |
 | `bayne/collisions` | Circle collisions and game states |
@@ -275,6 +277,8 @@ App.kt                       Shared entry point and current state owner
    loop/GameLoop.kt          Frame timing
    physics/PlayerMovement.kt  Velocity-based movement
    input/ArenaInput.kt       Pointer input expressed in arena coordinates
+   input/KeyboardInput.kt    Keyboard events and focus
+   input/KeyboardState.kt    Held keys and direction
    rendering/PlayerDrawing.kt  Compose drawing for player geometry
  ui/
    arena/Arena.kt            Arena screen layout and scene composition
@@ -368,6 +372,8 @@ will be drawn and how far apart they will be before running the app.
 
 ## Lesson 7: the game loop
 
+This describes the automatic-movement checkpoint before keyboard controls.
+
 Branch: `bayne/game-loop`, created from `develop` after the color-scheme PR
 was merged. The runner now starts centered at 85% of the field height and
 moves toward the top. Negative y goes up in canvas coordinates.
@@ -428,3 +434,69 @@ time, and stopping at the top edge. Run them alongside the boundary tests with
 
 References: [Compose effects](https://developer.android.com/develop/ui/compose/side-effects)
 and [Compose runtime frame APIs](https://developer.android.com/reference/kotlin/androidx/compose/runtime/package-summary).
+
+## Lesson 8: keyboard controls
+
+Branch: `bayne/keyboard-controls`, created from local `develop` after merging
+the completed `bayne/game-loop` lesson locally. The game-loop merge has not
+been pushed to remote `develop` yet.
+
+The runner now stays still until you hold WASD or an arrow key. Stefan increased
+the running speed from 120.dp to 160.dp per second. Each frame
+uses the held-key direction to calculate velocity:
+
+```text
+held keys -> direction -> velocity = direction * speed
+position += velocity * elapsed seconds
+```
+
+`game/input/KeyboardState.kt` owns a set of physical keys. `press()` adds a
+movement key; `release()` removes it. A set makes repeated key-down events
+harmless. Each alias stays separate, so releasing W while Up is held keeps
+upward movement active. Other keys return false so they can continue through
+Compose's event handling.
+
+`direction()` combines the four directions. Up is `(0, -1)`, right is `(1, 0)`,
+and no keys gives `(0, 0)`. Opposing keys cancel. W and D together initially
+give `(1, -1)`, whose length is about 1.414. Dividing by that length gives
+approximately `(0.707, -0.707)`, a vector of length one. Multiplying that vector
+by speed keeps diagonal travel as fast as straight travel.
+
+`game/input/KeyboardInput.kt` adds `Modifier.keyboardControls(state)`. It
+requests keyboard focus after composition and again on pointer presses,
+without consuming the pointer event. `onKeyEvent` routes key-down and key-up
+events to the state. Ctrl, Command, and Alt combinations are left to other
+handlers and clear movement. Shift does not add a sprint boost.
+
+Held keys are cleared when the arena loses focus, when its window loses focus,
+and when the modifier leaves composition. This prevents a missing key-up event
+from leaving the runner moving. The game loop remains active, but a zero
+direction produces zero velocity. Full pause/resume behavior is a later lesson.
+
+`App()` remembers the keyboard state and passes it to the modifier. Its existing
+frame callback now reads `keyboardState.direction()` rather than using a
+constant upward velocity. Player movement and arena bounds use the same
+calculation as the previous lesson. The renderer only adds a description of
+the available controls.
+
+Run the desktop app and check:
+
+1. Hold W or Up, then release it. The runner should move up and stop.
+2. Hold W and D together. It should move diagonally at the same overall speed.
+3. Hold A and D together, then release A. It should stop, then move right.
+4. Hold a movement key, switch to another app, and release the key there.
+   Return to the game; the runner should remain still until a new key press.
+5. Click the field, then use the keys again. Tap positioning and keyboard
+   movement should work together.
+
+The shared input code also supports hardware keyboards on platforms that
+provide these key events. Phones still have tap positioning; continuous touch
+movement comes next. The current lesson's automated tests check key mapping,
+aliases, repeats, opposite directions, diagonal speed, and clearing state.
+Window focus and real hardware input need the desktop checks above.
+
+Experiment: change `runningSpeed` from `160.dp` to `320.dp`. The direction
+vector should stay the same; only the distance covered each frame changes.
+
+References: [Compose key events](https://developer.android.com/develop/ui/compose/touch-input/keyboard-input/commands)
+and [requesting focus](https://developer.android.com/develop/ui/compose/touch-input/focus/request-focus).
