@@ -18,6 +18,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import com.stefan.neonarena.game.model.Player
 import com.stefan.neonarena.game.input.onArenaTap
+import com.stefan.neonarena.game.input.TouchState
+import com.stefan.neonarena.game.input.touchControls
 import com.stefan.neonarena.game.rendering.drawFootballField
 import com.stefan.neonarena.game.rendering.drawPlayer
 import com.stefan.neonarena.ui.theme.GameColors
@@ -31,6 +33,7 @@ import com.stefan.neonarena.ui.theme.GameColors
 @Composable
 fun Arena(
     player: Player?,
+    touchState: TouchState,
     onArenaSizeChanged: (Size) -> Unit,
     onTap: (Offset, Size) -> Unit,
     modifier: Modifier = Modifier,
@@ -45,9 +48,10 @@ fun Arena(
             .clipToBounds()
             .onSizeChanged { onArenaSizeChanged(it.toSize()) }
             .onArenaTap(onTap)
+            .touchControls(touchState)
             .semantics {
                 contentDescription = "Green football field with horizontal yard lines and an orange player. " +
-                    "Use WASD or arrow keys to move, or tap to position the player."
+                    "Drag to steer, use WASD or arrow keys, or tap to position the player."
             },
     ) {
         drawFootballField()

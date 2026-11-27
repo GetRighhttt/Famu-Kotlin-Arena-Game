@@ -3,12 +3,12 @@ Kotlin game development practice.
 
 A Kotlin / Compose Multiplatform game built one learning step at a time.
 
-## Current step: keyboard controls
+## Current step: touch controls
 
 The arena has one FAMU-orange player on a dark green football field with
 horizontal yard lines and a green boundary. The runner starts near the bottom.
-Hold WASD or arrow keys to move at 160.dp per second; release the keys to stop.
-Click or tap to reposition it. Its center is
+Drag across the field to steer at 240.dp per second; release to stop touch
+steering. WASD and arrow keys still work. Click or tap to reposition it. Its center is
 constrained so the whole circle fits inside the arena. Resizing also updates
 its position to fit. All three launchers use the same `App()` composable.
 
@@ -20,6 +20,8 @@ its position to fit. All three launchers use the same `App()` composable.
 | `shared/src/commonMain/kotlin/com/stefan/neonarena/game/loop/GameLoop.kt` | Frame timing and elapsed-time updates |
 | `shared/src/commonMain/kotlin/com/stefan/neonarena/game/physics/PlayerMovement.kt` | Velocity-based movement within arena bounds |
 | `shared/src/commonMain/kotlin/com/stefan/neonarena/ui/arena/Arena.kt` | Canvas layout and arena rendering |
+| `shared/src/commonMain/kotlin/com/stefan/neonarena/game/input/TouchState.kt` | Drag displacement, dead zone, and direction |
+| `shared/src/commonMain/kotlin/com/stefan/neonarena/game/input/TouchInput.kt` | Drag gesture lifecycle and cancellation |
 | `shared/src/commonMain/kotlin/com/stefan/neonarena/game/input/KeyboardState.kt` | Held movement keys and normalized direction |
 | `shared/src/commonMain/kotlin/com/stefan/neonarena/game/input/KeyboardInput.kt` | Keyboard events and arena focus |
 | `shared/src/commonMain/kotlin/com/stefan/neonarena/game/input/ArenaInput.kt` | Reusable tap input modifier extension |
@@ -78,8 +80,8 @@ no co-author trailers.
 | `bayne/player-state` | Player data and arena boundaries |
 | `bayne/color-scheme` | FAMU player colors and BCU opposition palette |
 | `bayne/game-loop` | Frames, velocity, and elapsed time |
-| `bayne/keyboard-controls` | Held keys, focus, and diagonal movement (current) |
-| `bayne/touch-controls` | Continuous movement from touch input |
+| `bayne/keyboard-controls` | Held keys, focus, and diagonal movement |
+| `bayne/touch-controls` | Continuous movement from touch input (current) |
 | `bayne/chasing-enemy` | Direction vectors and enemy movement |
 | `bayne/collisions` | Circle collisions and game states |
 | `bayne/survival-round` | The 60-second objective and restart |
@@ -279,6 +281,8 @@ App.kt                       Shared entry point and current state owner
    input/ArenaInput.kt       Pointer input expressed in arena coordinates
    input/KeyboardInput.kt    Keyboard events and focus
    input/KeyboardState.kt    Held keys and direction
+   input/TouchInput.kt       Drag gesture events
+   input/TouchState.kt       Drag displacement and direction
    rendering/PlayerDrawing.kt  Compose drawing for player geometry
  ui/
    arena/Arena.kt            Arena screen layout and scene composition
@@ -437,6 +441,8 @@ and [Compose runtime frame APIs](https://developer.android.com/reference/kotlin/
 
 ## Lesson 8: keyboard controls
 
+This describes the keyboard-only checkpoint before the touch lesson below.
+
 Branch: `bayne/keyboard-controls`, created from local `develop` after merging
 the completed `bayne/game-loop` lesson locally. The game-loop merge has not
 been pushed to remote `develop` yet.
@@ -500,3 +506,71 @@ vector should stay the same; only the distance covered each frame changes.
 
 References: [Compose key events](https://developer.android.com/develop/ui/compose/touch-input/keyboard-input/commands)
 and [requesting focus](https://developer.android.com/develop/ui/compose/touch-input/focus/request-focus).
+
+## Lesson 9: touch controls
+
+Branch: `bayne/touch-controls`, created from local `develop` after merging the
+completed keyboard-controls lesson locally. The game-loop and keyboard lesson
+merges have not been pushed to remote `develop` yet.
+
+Drag on the field to steer. The initial pointer-down position becomes the
+anchor once Compose recognizes a drag. Direction is the normalized displacement
+from that anchor to the current finger position:
+
+```text
+displacement = current pointer position - initial pointer position
+direction = displacement / displacement length
+velocity = direction * running speed
+```
+
+For example, starting at `(200, 300)` and moving to `(230, 260)` gives `(30, -40)`.
+Its length is 50, so direction is `(0.6, -0.8)`. At 240.dp per second, the
+velocity components are 144.dp per second right and 192.dp per second up.
+Their combined speed is still 240.dp per second.
+
+`game/input/TouchState.kt` owns the anchor, displacement, and drag status.
+An 8.dp dead zone, converted to pixels in `App()`, returns zero direction for
+small displacements. Returning your finger to the anchor stops movement while
+keeping the drag active. Holding your finger away from the anchor maintains
+the direction even when the finger is no longer moving. Greater drag distance
+does not add speed in this lesson.
+
+`game/input/TouchInput.kt` connects `detectDragGestures` to that state. The
+extended drag-start callback provides the original down event, rather than
+anchoring at the later position where drag recognition passes touch slop.
+`onDrag` consumes movement, which cancels the separate tap detector. Release
+and cancellation both clear touch input. Losing window focus or leaving
+composition also clears it. Tap and drag detectors use separate `pointerInput`
+modifiers so each detector can receive events.
+
+`Arena` attaches touch input after padding, in the same local coordinate system
+as its drawing and tap input. `App()` chooses touch direction during an active
+drag, including zero direction inside the dead zone. Otherwise it uses keyboard
+direction. If keyboard keys are still held at touch release, keyboard movement
+resumes. Stefan increased running speed to 240.dp per second after trying the device
+build. Both paths use the same speed, game loop, movement extension, and bounds.
+
+To try it on desktop, hold the mouse button and drag within the field. On a
+phone, use one finger. A short tap still repositions the player; a recognized
+drag steers it without teleporting to the gesture's starting point.
+
+Check an upward drag, a diagonal drag, holding the finger stationary away from
+the anchor, returning to the dead zone, releasing, and tapping afterward.
+The automated state tests cover relative coordinates, dead-zone boundaries,
+normalization, holding direction, new anchors, and clearing late updates.
+Gesture recognition and cancellation also need a device or desktop check.
+
+Experiment: increase the dead zone from `8.dp` to `24.dp`. Predict how far your
+finger must move from its starting point before the runner begins moving.
+
+Reference: [Compose gesture detection](https://developer.android.com/develop/ui/compose/touch-input/pointer-input/understand-gestures).
+
+### Connected-device verification
+
+Installed and tested the debug build on a connected Samsung SM-G990U.
+Screenshot-based position checks confirmed tap positioning, upward and diagonal
+drag steering, stopping on release, boundary constraints, holding a direction,
+returning to the dead zone, and gesture cancellation. These gesture checks used
+the 160.dp/s build. After Stefan requested 240.dp/s, all platform build checks
+and 22 unit tests passed again, and the updated build was installed and opened
+on the same device for hands-on speed tuning.
