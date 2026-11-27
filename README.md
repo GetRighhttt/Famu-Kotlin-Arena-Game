@@ -3,28 +3,31 @@ Kotlin game development practice.
 
 A Kotlin / Compose Multiplatform game built one learning step at a time.
 
-## Current step: tackles and restart
+## Current step: a scrolling field and Rattlers end zone
 
-The arena has one FAMU-orange player on a dark green football field with
-horizontal yard lines and a green boundary. The runner starts near the bottom.
-Drag across the field to steer at 240.dp per second; release to stop touch
-steering. WASD and arrow keys still work. Click or tap to reposition the runner. A maroon-and-gold BCU defender chases
-it at 140.dp per second. Contact tackles the runner and stops the run.
-Choose Try again to reset both players. The runner's center is
-constrained so the whole circle fits inside the arena. Resizing also updates
-its position to fit. All three launchers use the same `App()` composable.
+The field is three viewport heights long. A camera starts at the near end and
+advances toward the Rattlers end zone at 32.dp per second. The runner steers
+within the visible area at 240.dp per second while a BCU defender chases at
+140.dp per second. Yard numbers, goalposts, and RATTLERS! lettering use the
+same world coordinates as the field.
+
+Contact stops the run with a tackle. Once the far end is fully revealed,
+reaching its goal line scores a touchdown. Either result offers Try again,
+which resets players and camera progress. Scrolling runs only during an active
+run, so a stopped result screen is intentionally stationary.
 
 ## Project map
 
 | Location | Purpose |
 | --- | --- |
 | `shared/src/commonMain/kotlin/com/stefan/neonarena/App.kt` | Connects arena state, input, and frame updates |
-| `shared/src/commonMain/kotlin/com/stefan/neonarena/game/model/RunStatus.kt` | Running and tackled states |
+| `shared/src/commonMain/kotlin/com/stefan/neonarena/game/model/RunStatus.kt` | Running, tackled, and touchdown states |
 | `shared/src/commonMain/kotlin/com/stefan/neonarena/game/physics/PlayerCollision.kt` | Circle contact calculation |
-| `shared/src/commonMain/kotlin/com/stefan/neonarena/ui/arena/TackleOverlay.kt` | Result card and restart action |
+| `shared/src/commonMain/kotlin/com/stefan/neonarena/ui/arena/RunResultOverlay.kt` | Result card and restart action |
+| `shared/src/commonMain/kotlin/com/stefan/neonarena/game/state/FieldCamera.kt` | World/viewport coordinates and automatic camera motion |
 | `shared/src/commonMain/kotlin/com/stefan/neonarena/game/state/ArenaState.kt` | Owns both football players, field size, and frame updates |
 | `shared/src/commonMain/kotlin/com/stefan/neonarena/game/physics/DefenderMovement.kt` | Pursuit direction and travel distance |
-| `shared/src/commonMain/kotlin/com/stefan/neonarena/game/rendering/DefenderDrawing.kt` | Maroon defender body and gold outline |
+| `shared/src/commonMain/kotlin/com/stefan/neonarena/game/rendering/DefenderDrawing.kt` | BCU uniform and heading toward the runner |
 | `shared/src/commonMain/kotlin/com/stefan/neonarena/game/loop/GameLoop.kt` | Frame timing and elapsed-time updates |
 | `shared/src/commonMain/kotlin/com/stefan/neonarena/game/physics/PlayerMovement.kt` | Velocity-based movement within arena bounds |
 | `shared/src/commonMain/kotlin/com/stefan/neonarena/ui/arena/Arena.kt` | Canvas layout and arena rendering |
@@ -34,7 +37,7 @@ its position to fit. All three launchers use the same `App()` composable.
 | `shared/src/commonMain/kotlin/com/stefan/neonarena/game/input/KeyboardInput.kt` | Keyboard events and arena focus |
 | `shared/src/commonMain/kotlin/com/stefan/neonarena/game/input/ArenaInput.kt` | Reusable tap input modifier extension |
 | `shared/src/commonMain/kotlin/com/stefan/neonarena/game/rendering/PlayerDrawing.kt` | Reusable player drawing extension |
-| `shared/src/commonMain/kotlin/com/stefan/neonarena/game/rendering/FootballFieldDrawing.kt` | Field surface and horizontal yard lines |
+| `shared/src/commonMain/kotlin/com/stefan/neonarena/game/rendering/FootballFieldDrawing.kt` | Field surface, yard lines, hash marks, and end zones |
 | `shared/src/commonMain/kotlin/com/stefan/neonarena/ui/theme/GameColors.kt` | School colors and game surface colors |
 | `shared/src/commonMain/kotlin/com/stefan/neonarena/game/model/Player.kt` | Player data and arena boundary calculations |
 | `shared/src/commonTest/kotlin/com/stefan/neonarena/game/model/PlayerTest.kt` | Boundary calculation tests |
@@ -91,7 +94,8 @@ no co-author trailers.
 | `bayne/keyboard-controls` | Held keys, focus, and diagonal movement |
 | `bayne/touch-controls` | Continuous movement from touch input |
 | `bayne/chasing-enemy` | Direction vectors and a chasing BCU defender |
-| `bayne/collisions` | Circle contact, tackles, and restart (current) |
+| `bayne/collisions` | Circle contact, tackles, and restart |
+| `bayne/end-zone` | Camera scrolling, field markings, and touchdown (current) |
 | `bayne/survival-round` | The 60-second objective and restart |
 | `bayne/enemy-spawning` | Spawn timing and increasing difficulty |
 | `bayne/pause-and-resume` | Pausing time and handling app lifecycle |
@@ -291,6 +295,7 @@ App.kt                       Shared entry point and composition
    physics/DefenderMovement.kt  Pursuit direction and distance
    physics/PlayerCollision.kt  Circle contact
    state/ArenaState.kt       Runner, defender, and field state
+   state/FieldCamera.kt      Viewport and world coordinate conversion
    input/ArenaInput.kt       Pointer input expressed in arena coordinates
    input/KeyboardInput.kt    Keyboard events and focus
    input/KeyboardState.kt    Held keys and direction
@@ -300,7 +305,7 @@ App.kt                       Shared entry point and composition
    rendering/DefenderDrawing.kt  BCU body and outline
  ui/
    arena/Arena.kt            Arena screen layout and scene composition
-   arena/TackleOverlay.kt    Tackle result and restart
+   arena/RunResultOverlay.kt    Tackle result and restart
    theme/GameColors.kt       Shared rendering palette
 ```
 
@@ -671,6 +676,8 @@ a tap. The debug build was installed and reopened on that device for testing.
 
 ## Lesson 11: tackles and restart
 
+This describes the collision checkpoint before the scrolling-field lesson.
+
 Branch: `bayne/collisions`. The completed chasing lesson was saved as commit
 `8cd8a98` and merged into local `develop` before creating this branch. These
 local lesson merges have not been pushed to remote `develop` yet.
@@ -705,7 +712,7 @@ frame loop is cancelled, and field input modifiers are removed. Removing input
 also clears stored keyboard and touch state. State methods independently reject
 movement while tackled, so an extra callback cannot move a stopped run.
 
-`ui/arena/TackleOverlay.kt` shows a compact result card above the dimmed field.
+`ui/arena/RunResultOverlay.kt` shows a compact result card above the dimmed field.
 Its Try again action uses Compose's clickable behavior and button semantics,
 so it supports tapping and keyboard activation. The arena stays measured under
 the card; its players stop where contact was detected.
@@ -734,3 +741,93 @@ Kotlin compilation for the iOS ARM64 simulator. On the connected Samsung,
 verified the tackle result card, a frozen field despite drag input, restart,
 and a second pursuit/tackle cycle. Inspected the result-card screenshot for
 readable text and button layout. The debug build is installed on that device.
+
+## Lesson 12: scrolling a world through a viewport
+
+Branch: `bayne/end-zone`. The open remote PR stack is unchanged. This lesson
+starts from the collision merge in local `develop` and is not committed yet.
+
+The earlier desktop build had no camera code. This lesson creates a field
+three times the visible canvas height, then shows only one screen-sized part
+of it. This is a rendering lesson: world positions describe where things are
+on the whole field; screen positions describe where the viewport draws them.
+
+`game/state/FieldCamera.kt` stores the viewport size and its top edge in world
+coordinates, `offsetY`. At the start, this is `fieldHeight - viewportHeight`,
+which shows the near end. Moving the camera toward zero reveals the far end:
+
+```text
+screenY = worldY - cameraY
+cameraY -= scrollSpeed * elapsedSeconds
+```
+
+For a stationary world line at y = 1400, a camera at y = 1200 draws it at 200.
+After the camera advances to 1168, that line is drawn at 232: it moves downward
+by 32 pixels on screen. The line's world coordinate did not change.
+
+`Arena` applies `translate(top = -camera.offsetY)` to the field and both player
+drawings. Its canvas is clipped to the viewport, so world content outside the
+visible area stays hidden. Collision checks continue to compare world positions.
+Taps use the reverse conversion, `worldY = screenY + cameraY`.
+
+`ArenaState.update()` advances the camera and carries the runner forward by the
+same world distance. That keeps an idle runner at the same screen position while
+the ground passes beneath it. Steering adds movement inside the visible bounds.
+The defender stays in world coordinates and pursues the runner's current world
+position; it is not carried forward by the camera.
+
+Camera speed is 32.dp/s, separate from the runner's 240.dp/s and defender's
+140.dp/s. These become pixels in App before entering the calculations. A faster
+runner cannot reveal the hidden field early because its position is constrained
+to the current viewport. Tapping remains a learning shortcut for repositioning
+within that viewport.
+
+### Field markings and results
+
+`FootballFieldDrawing.kt` draws yard numbers on both sides in the sequence
+10, 20, 30, 40, 50, 40, 30, 20, 10. Their y-coordinates use fractions of the
+full playing field, so text and lines scroll together. The end zones are shaded
+green. The far end says RATTLERS! and has gold uprights, a crossbar, and a stem.
+
+Two columns of short hash marks divide each ten-yard interval into single yards.
+A thin line crosses the field at five yards. Each mark uses the same camera
+translation as the numbers, so their spacing stays consistent while scrolling.
+
+Each player is drawn around a local center. The renderer scales the uniform to
+the player radius, then places it at the world position. The BCU helmet points
+toward the runner. FAMU faces upfield with the football tucked under one arm.
+Tackle detection still uses the radius around each center.
+
+When camera offset reaches zero, the far end zone is fully visible. The runner
+scores when its leading circle edge reaches that goal line. Contact takes
+priority if the defender is touching it at the same update. Both Touchdown and
+Tackled stop the loop and use `RunResultOverlay` for restart. Restart resets the
+camera to the near end as well as resetting both players and stored input.
+
+The field markings are an arcade representation of football. This lesson does
+not model a ball, official scoring rules, downs, or goalpost collisions.
+
+### Experiments and verification
+
+Try changing only `scrollSpeed` from `32.dp` to `48.dp`. Yard lines should pass
+faster without changing steering speed. Then restore it and change only
+`runningSpeed`; steering should change while scrolling stays at the same pace.
+
+Camera tests cover coordinate conversion, scroll direction, frame-rate
+consistency, progress on resize, bounds, and reset. Scrolling-arena tests cover
+carrying the runner, tap conversion, hidden-world limits, touchdown, and tackle
+priority. Earlier one-screen arena tests use `fieldScreens = 1f` so they continue
+testing their original collision geometry.
+
+Desktop rendering tests in `FieldRenderingTest.kt` drive real Compose frame
+clock timestamps through App and check that a yard line moves about 32 pixels
+in one second. They also render the far end zone and check for gold goalposts
+and lettering. Previews are saved under `desktopApp/build/reports/field-camera`.
+Run these with `./gradlew :desktopApp:jvmTest`.
+
+Verification: all 54 shared tests and both desktop rendering tests passed.
+Desktop and Android builds and shared iOS compilation also passed. The real
+App rendering test measured approximately 32 pixels of yard-line movement over
+one second at density 1. Desktop-sized screenshots confirmed numbered yard
+lines, goalposts, and RATTLERS! lettering. The desktop app was reopened with
+this build. Scrolling pauses on a tackle or touchdown until Try again.

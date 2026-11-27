@@ -28,6 +28,9 @@ kotlin {
             implementation(project(":shared"))
             implementation(compose.desktop.currentOs)
         }
+        jvmTest.dependencies {
+            implementation(kotlin("test"))
+        }
     }
 }
 

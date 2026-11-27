@@ -11,6 +11,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.text.rememberTextMeasurer
+import com.stefan.neonarena.game.state.FieldCamera
+import com.stefan.neonarena.game.model.RunStatus
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -29,7 +33,7 @@ import com.stefan.neonarena.game.rendering.drawPlayer
 import com.stefan.neonarena.ui.theme.GameColors
 
 /**
- * Composes the field and players, then shows a restart overlay after a tackle.
+ * Translates world drawings through the camera and overlays a stopped-run result.
  * Field gestures are enabled only during a running round.
  *
  * @author Stefan Bayne
@@ -41,12 +45,14 @@ fun Arena(
     defender: Player?,
     touchState: TouchState,
     isRunning: Boolean,
-    isTackled: Boolean,
+    status: RunStatus,
+    camera: FieldCamera,
     onRestart: () -> Unit,
     onArenaSizeChanged: (Size) -> Unit,
     onTap: (Offset, Size) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val textMeasurer = rememberTextMeasurer()
     Box(
         modifier = modifier.fillMaxSize()
             .background(GameColors.background)
@@ -61,19 +67,25 @@ fun Arena(
                 .then(if (isRunning) Modifier.onArenaTap(onTap).touchControls(touchState) else Modifier)
                 .semantics {
                     contentDescription = "Football field with a FAMU runner and BCU defender. " +
-                        if (isTackled) "Run stopped after a tackle." else "Drag or use WASD or arrow keys to steer."
+                        when (status) {
+                            RunStatus.Tackled -> "Run stopped after a tackle."
+                            RunStatus.Touchdown -> "Touchdown. Run completed."
+                            RunStatus.Running -> "Drag or use WASD or arrow keys to steer on the scrolling field."
+                        }
                 },
         ) {
-            drawFootballField()
-            defender?.let { drawDefender(it) }
-            player?.let { drawPlayer(it) }
+            translate(top = -camera.offsetY) {
+                drawFootballField(camera.fieldSize, camera.endZoneHeight, textMeasurer)
+                defender?.let { drawDefender(it, player?.position) }
+                player?.let { drawPlayer(it) }
+            }
         }
-        if (isTackled) {
+        if (status != RunStatus.Running) {
             Box(
                 modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.65f)).padding(16.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                TackleOverlay(onRestart)
+                RunResultOverlay(status, onRestart)
             }
         }
     }

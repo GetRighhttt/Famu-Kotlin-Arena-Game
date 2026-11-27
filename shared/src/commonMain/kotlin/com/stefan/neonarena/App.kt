@@ -10,7 +10,6 @@ import com.stefan.neonarena.game.input.KeyboardState
 import com.stefan.neonarena.game.input.TouchState
 import com.stefan.neonarena.game.input.keyboardControls
 import com.stefan.neonarena.game.loop.GameLoop
-import com.stefan.neonarena.game.model.RunStatus
 import com.stefan.neonarena.game.state.ArenaState
 import com.stefan.neonarena.ui.arena.Arena
 
@@ -25,6 +24,7 @@ import com.stefan.neonarena.ui.arena.Arena
 fun App() {
     val playerRadius = with(LocalDensity.current) { 18.dp.toPx() }
     val runningSpeed = with(LocalDensity.current) { 240.dp.toPx() }
+    val scrollSpeed = with(LocalDensity.current) { 32.dp.toPx() }
     val defenderSpeed = with(LocalDensity.current) { 140.dp.toPx() }
     val arenaState = remember(playerRadius) { ArenaState(playerRadius) }
     val keyboardState = remember { KeyboardState() }
@@ -33,7 +33,7 @@ fun App() {
 
     GameLoop(running = arenaState.isRunning) { elapsedSeconds ->
         val direction = if (touchState.isDragging) touchState.direction() else keyboardState.direction()
-        arenaState.update(direction, runningSpeed, defenderSpeed, elapsedSeconds)
+        arenaState.update(direction, runningSpeed, defenderSpeed, elapsedSeconds, scrollSpeed)
     }
 
     // Recreate measurement callbacks if display density creates a new arena state.
@@ -43,7 +43,8 @@ fun App() {
             defender = arenaState.defender,
             touchState = touchState,
             isRunning = arenaState.isRunning,
-            isTackled = arenaState.status == RunStatus.Tackled,
+            status = arenaState.status,
+            camera = arenaState.camera,
             modifier = if (arenaState.isRunning) Modifier.keyboardControls(keyboardState) else Modifier,
             onRestart = {
                 keyboardState.clear()
@@ -51,7 +52,7 @@ fun App() {
                 arenaState.restart()
             },
             onArenaSizeChanged = arenaState::resize,
-            onTap = { position, _ -> arenaState.movePlayerTo(position) },
+            onTap = { position, _ -> arenaState.movePlayerTo(arenaState.camera.screenToWorld(position)) },
         )
     }
 }

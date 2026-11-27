@@ -21,6 +21,7 @@ object GameColors {
     val bcuMaroon = Color(0xFF860038)
     val bcuGold = Color(0xFFFDB913)
 
+    val footballLeather = Color(0xFF854425)
     val background = Color(0xFF07160D)
     val arenaSurface = Color(0xFF102C1D)
     val fieldLine = Color(0xFFCEDFD2)

@@ -19,17 +19,25 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.stefan.neonarena.game.model.RunStatus
 import com.stefan.neonarena.ui.theme.GameColors
 
 /**
- * Shows the tackle result and a keyboard-accessible action to restart the run.
+ * Shows the run result and a keyboard-accessible action to restart the run.
  * The parent arena places this card above the stopped field.
  *
  * @author Stefan Bayne
  * @since 2026-11-27
  */
 @Composable
-fun TackleOverlay(onRestart: () -> Unit) {
+fun RunResultOverlay(status: RunStatus, onRestart: () -> Unit) {
+    val title: String
+    val message: String
+    when (status) {
+        RunStatus.Running -> return
+        RunStatus.Tackled -> { title = "Tackled"; message = "BCU stopped the run." }
+        RunStatus.Touchdown -> { title = "Touchdown!"; message = "FAMU reached the end zone." }
+    }
     Column(
         modifier = Modifier.widthIn(max = 320.dp)
             .fillMaxWidth()
@@ -38,10 +46,10 @@ fun TackleOverlay(onRestart: () -> Unit) {
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        BasicText("Tackled", style = TextStyle(
+        BasicText(title, style = TextStyle(
             color = GameColors.fieldLine, fontSize = 28.sp, fontWeight = FontWeight.Bold,
         ))
-        BasicText("BCU stopped the run.", style = TextStyle(
+        BasicText(message, style = TextStyle(
             color = GameColors.fieldLine, fontSize = 16.sp,
         ))
         Box(

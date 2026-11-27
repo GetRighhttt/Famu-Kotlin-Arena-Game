@@ -18,7 +18,7 @@ import kotlin.test.assertTrue
 class ArenaStateTest {
     @Test
     fun emptyMeasurementWaitsUntilTheFieldHasSpace() {
-        val state = ArenaState(18f)
+        val state = ArenaState(18f, fieldScreens = 1f)
         state.resize(Size.Zero)
         state.update(Offset(1f, 0f), 240f, 140f, 0.05f)
         assertFalse(state.isReady)
@@ -30,7 +30,7 @@ class ArenaStateTest {
 
     @Test
     fun tappingMovesOnlyTheRunnerAndConstrainsItsPosition() {
-        val state = ArenaState(18f)
+        val state = ArenaState(18f, fieldScreens = 1f)
         state.resize(Size(1000f, 1000f))
         val defender = state.defender
         state.movePlayerTo(Offset(-20f, 1100f))
@@ -40,7 +40,7 @@ class ArenaStateTest {
 
     @Test
     fun defenderChasesTheRunnersUpdatedPosition() {
-        val state = ArenaState(18f)
+        val state = ArenaState(18f, fieldScreens = 1f)
         state.resize(Size(1000f, 1000f))
         state.update(Offset(1f, 0f), 240f, 140f, 0.05f)
         assertEquals(Offset(512f, 850f), state.player?.position)
@@ -51,7 +51,7 @@ class ArenaStateTest {
 
     @Test
     fun defenderMovesEvenWhenRunnerInputIsIdle() {
-        val state = ArenaState(18f)
+        val state = ArenaState(18f, fieldScreens = 1f)
         state.resize(Size(1000f, 1000f))
         state.update(Offset.Zero, 240f, 140f, 0.05f)
         assertEquals(Offset(500f, 850f), state.player?.position)
@@ -60,7 +60,7 @@ class ArenaStateTest {
 
     @Test
     fun resizingConstrainsBothPlayersRatherThanRespawningThem() {
-        val state = ArenaState(18f)
+        val state = ArenaState(18f, fieldScreens = 1f)
         state.resize(Size(1000f, 1000f))
         state.resize(Size(200f, 100f))
         assertEquals(Offset(182f, 82f), state.player?.position)
@@ -72,7 +72,7 @@ class ArenaStateTest {
 
     @Test
     fun tappingIntoTheDefenderTacklesImmediately() {
-        val state = ArenaState(18f)
+        val state = ArenaState(18f, fieldScreens = 1f)
         state.resize(Size(1000f, 1000f))
         state.movePlayerTo(assertNotNull(state.defender).position)
         assertEquals(RunStatus.Tackled, state.status)
@@ -81,7 +81,7 @@ class ArenaStateTest {
 
     @Test
     fun defenderContactEndsTheRunDuringAFrameUpdate() {
-        val state = ArenaState(18f)
+        val state = ArenaState(18f, fieldScreens = 1f)
         state.resize(Size(1000f, 1000f))
         state.movePlayerTo(Offset(500f, 190f))
         assertEquals(RunStatus.Running, state.status)
@@ -91,7 +91,7 @@ class ArenaStateTest {
 
     @Test
     fun runnerContactIsCheckedBeforeDefenderMovement() {
-        val state = ArenaState(18f)
+        val state = ArenaState(18f, fieldScreens = 1f)
         state.resize(Size(1000f, 1000f))
         state.movePlayerTo(Offset(500f, 190f))
         state.update(Offset(0f, -1f), 240f, 140f, 0.05f)
@@ -101,7 +101,7 @@ class ArenaStateTest {
 
     @Test
     fun tackledRunIgnoresUpdatesAndTapMovement() {
-        val state = ArenaState(18f)
+        val state = ArenaState(18f, fieldScreens = 1f)
         state.resize(Size(1000f, 1000f))
         state.movePlayerTo(assertNotNull(state.defender).position)
         val runner = state.player
@@ -114,7 +114,7 @@ class ArenaStateTest {
 
     @Test
     fun restartResetsPositionsAndAllowsMovementAgain() {
-        val state = ArenaState(18f)
+        val state = ArenaState(18f, fieldScreens = 1f)
         state.resize(Size(1000f, 1000f))
         state.movePlayerTo(assertNotNull(state.defender).position)
         state.restart()
@@ -128,7 +128,7 @@ class ArenaStateTest {
 
     @Test
     fun resizingPlayersIntoContactAlsoEndsTheRun() {
-        val state = ArenaState(18f)
+        val state = ArenaState(18f, fieldScreens = 1f)
         state.resize(Size(1000f, 1000f))
         state.resize(Size(40f, 40f))
         assertEquals(RunStatus.Tackled, state.status)

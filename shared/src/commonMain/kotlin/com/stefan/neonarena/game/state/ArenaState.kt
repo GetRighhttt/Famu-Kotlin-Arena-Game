@@ -16,14 +16,17 @@ import com.stefan.neonarena.game.physics.touches
  *
  * Resize creates the initial players or constrains existing positions. A frame
  * moves the runner first, then directs the defender toward its updated position.
- * Contact ends the run; restart restores both initial positions.
+ * World coordinates drive movement and contact. The camera carries the runner
+ * forward while input steers within the viewport. Contact or reaching the far
+ * end zone ends the run; restart restores positions and camera progress.
  * Both football players reuse the Player geometry model. All coordinates and
  * speeds passed here use pixels; App performs density conversion.
  *
  * @author Stefan Bayne
  * @since 2026-11-27
  */
-class ArenaState(private val playerRadius: Float) {
+class ArenaState(private val playerRadius: Float, fieldScreens: Float = 3f) {
+    val camera = FieldCamera(fieldScreens)
     var player by mutableStateOf<Player?>(null)
         private set
     var defender by mutableStateOf<Player?>(null)
@@ -41,47 +44,68 @@ class ArenaState(private val playerRadius: Float) {
         get() = player != null && defender != null && size.width > 0f && size.height > 0f
 
     fun resize(bounds: Size) {
+        if (bounds.width <= 0f || bounds.height <= 0f) {
+            size = bounds
+            return
+        }
+        val oldOffset = camera.offsetY
+        camera.resize(bounds)
         size = bounds
-        if (bounds.width <= 0f || bounds.height <= 0f) return
-        player = (player ?: Player(Offset(bounds.width / 2f, bounds.height * 0.85f), playerRadius))
-            .constrainedTo(bounds)
-        defender = (defender ?: Player(Offset(bounds.width / 2f, bounds.height * 0.15f), playerRadius))
-            .constrainedTo(bounds)
-        checkForTackle()
+        val offsetChange = Offset(0f, camera.offsetY - oldOffset)
+        player = (player?.let { it.copy(position = it.position + offsetChange) } ?: Player(
+            camera.screenToWorld(Offset(bounds.width / 2f, bounds.height * 0.85f)), playerRadius,
+        )).withinViewport()
+        defender = (defender?.let { it.copy(position = it.position + offsetChange) } ?: Player(
+            camera.screenToWorld(Offset(bounds.width / 2f, bounds.height * 0.15f)), playerRadius,
+        )).constrainedTo(camera.fieldSize)
+        checkForOutcome()
+    }
+
+    private fun Player.withinViewport(): Player {
+        val visible = copy(position = camera.worldToScreen(position)).constrainedTo(size)
+        return visible.copy(position = camera.screenToWorld(visible.position))
     }
 
     fun movePlayerTo(position: Offset) {
         if (!isRunning) return
-        player = player?.copy(position = position)?.constrainedTo(size)
-        checkForTackle()
+        player = player?.copy(position = position)?.withinViewport()
+        checkForOutcome()
     }
 
     fun restart() {
+        camera.reset()
         player = null
         defender = null
         status = RunStatus.Running
         resize(size)
     }
 
-    fun update(direction: Offset, runnerSpeed: Float, defenderSpeed: Float, elapsedSeconds: Float) {
+    fun update(direction: Offset, runnerSpeed: Float, defenderSpeed: Float, elapsedSeconds: Float, scrollSpeed: Float = 0f) {
         if (!isRunning) return
-        checkForTackle()
+        checkForOutcome()
         if (!isRunning) return
         val runner = player ?: return
         val opponent = defender ?: return
-        val movedRunner = runner.movedBy(direction * runnerSpeed, elapsedSeconds, size)
+        val cameraTravel = camera.advance(scrollSpeed, elapsedSeconds)
+        val carriedRunner = runner.copy(position = runner.position - Offset(0f, cameraTravel))
+        val movedRunner = carriedRunner.movedBy(direction * runnerSpeed, elapsedSeconds, camera.fieldSize)
+            .withinViewport()
         player = movedRunner
         // Check the runner's move before moving the defender away from that contact.
-        checkForTackle()
+        checkForOutcome()
         if (!isRunning) return
-        defender = opponent.chasing(movedRunner.position, defenderSpeed, elapsedSeconds, size)
-        checkForTackle()
+        defender = opponent.chasing(movedRunner.position, defenderSpeed, elapsedSeconds, camera.fieldSize)
+        checkForOutcome()
     }
 
-    private fun checkForTackle() {
+    private fun checkForOutcome() {
         if (!isReady || status != RunStatus.Running) return
         val runner = player ?: return
         val opponent = defender ?: return
-        if (runner.touches(opponent, size)) status = RunStatus.Tackled
+        status = when {
+            runner.touches(opponent, size) -> RunStatus.Tackled
+            camera.offsetY == 0f && runner.position.y - runner.radiusIn(size) <= camera.endZoneHeight -> RunStatus.Touchdown
+            else -> RunStatus.Running
+        }
     }
 }
