@@ -10,6 +10,7 @@ import com.stefan.neonarena.game.input.KeyboardState
 import com.stefan.neonarena.game.input.TouchState
 import com.stefan.neonarena.game.input.keyboardControls
 import com.stefan.neonarena.game.loop.GameLoop
+import com.stefan.neonarena.game.model.RunStatus
 import com.stefan.neonarena.game.state.ArenaState
 import com.stefan.neonarena.ui.arena.Arena
 
@@ -30,7 +31,7 @@ fun App() {
     val touchDeadZone = with(LocalDensity.current) { 8.dp.toPx() }
     val touchState = remember(touchDeadZone) { TouchState(touchDeadZone) }
 
-    GameLoop(running = arenaState.isReady) { elapsedSeconds ->
+    GameLoop(running = arenaState.isRunning) { elapsedSeconds ->
         val direction = if (touchState.isDragging) touchState.direction() else keyboardState.direction()
         arenaState.update(direction, runningSpeed, defenderSpeed, elapsedSeconds)
     }
@@ -41,7 +42,14 @@ fun App() {
             player = arenaState.player,
             defender = arenaState.defender,
             touchState = touchState,
-            modifier = Modifier.keyboardControls(keyboardState),
+            isRunning = arenaState.isRunning,
+            isTackled = arenaState.status == RunStatus.Tackled,
+            modifier = if (arenaState.isRunning) Modifier.keyboardControls(keyboardState) else Modifier,
+            onRestart = {
+                keyboardState.clear()
+                touchState.clear()
+                arenaState.restart()
+            },
             onArenaSizeChanged = arenaState::resize,
             onTap = { position, _ -> arenaState.movePlayerTo(position) },
         )

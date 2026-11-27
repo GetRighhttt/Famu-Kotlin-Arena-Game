@@ -3,13 +3,14 @@ Kotlin game development practice.
 
 A Kotlin / Compose Multiplatform game built one learning step at a time.
 
-## Current step: a chasing BCU defender
+## Current step: tackles and restart
 
 The arena has one FAMU-orange player on a dark green football field with
 horizontal yard lines and a green boundary. The runner starts near the bottom.
 Drag across the field to steer at 240.dp per second; release to stop touch
 steering. WASD and arrow keys still work. Click or tap to reposition the runner. A maroon-and-gold BCU defender chases
-it at 140.dp per second. Tackles are a later lesson. The runner's center is
+it at 140.dp per second. Contact tackles the runner and stops the run.
+Choose Try again to reset both players. The runner's center is
 constrained so the whole circle fits inside the arena. Resizing also updates
 its position to fit. All three launchers use the same `App()` composable.
 
@@ -18,6 +19,9 @@ its position to fit. All three launchers use the same `App()` composable.
 | Location | Purpose |
 | --- | --- |
 | `shared/src/commonMain/kotlin/com/stefan/neonarena/App.kt` | Connects arena state, input, and frame updates |
+| `shared/src/commonMain/kotlin/com/stefan/neonarena/game/model/RunStatus.kt` | Running and tackled states |
+| `shared/src/commonMain/kotlin/com/stefan/neonarena/game/physics/PlayerCollision.kt` | Circle contact calculation |
+| `shared/src/commonMain/kotlin/com/stefan/neonarena/ui/arena/TackleOverlay.kt` | Result card and restart action |
 | `shared/src/commonMain/kotlin/com/stefan/neonarena/game/state/ArenaState.kt` | Owns both football players, field size, and frame updates |
 | `shared/src/commonMain/kotlin/com/stefan/neonarena/game/physics/DefenderMovement.kt` | Pursuit direction and travel distance |
 | `shared/src/commonMain/kotlin/com/stefan/neonarena/game/rendering/DefenderDrawing.kt` | Maroon defender body and gold outline |
@@ -86,8 +90,8 @@ no co-author trailers.
 | `bayne/game-loop` | Frames, velocity, and elapsed time |
 | `bayne/keyboard-controls` | Held keys, focus, and diagonal movement |
 | `bayne/touch-controls` | Continuous movement from touch input |
-| `bayne/chasing-enemy` | Direction vectors and a chasing BCU defender (current) |
-| `bayne/collisions` | Circle collisions and game states |
+| `bayne/chasing-enemy` | Direction vectors and a chasing BCU defender |
+| `bayne/collisions` | Circle contact, tackles, and restart (current) |
 | `bayne/survival-round` | The 60-second objective and restart |
 | `bayne/enemy-spawning` | Spawn timing and increasing difficulty |
 | `bayne/pause-and-resume` | Pausing time and handling app lifecycle |
@@ -281,9 +285,11 @@ Packages group the game by responsibility beneath `com.stefan.neonarena`:
 App.kt                       Shared entry point and composition
  game/
    model/Player.kt           Player geometry and arena boundary rules
+   model/RunStatus.kt        Running or tackled state
    loop/GameLoop.kt          Frame timing
    physics/PlayerMovement.kt  Velocity-based movement
    physics/DefenderMovement.kt  Pursuit direction and distance
+   physics/PlayerCollision.kt  Circle contact
    state/ArenaState.kt       Runner, defender, and field state
    input/ArenaInput.kt       Pointer input expressed in arena coordinates
    input/KeyboardInput.kt    Keyboard events and focus
@@ -294,6 +300,7 @@ App.kt                       Shared entry point and composition
    rendering/DefenderDrawing.kt  BCU body and outline
  ui/
    arena/Arena.kt            Arena screen layout and scene composition
+   arena/TackleOverlay.kt    Tackle result and restart
    theme/GameColors.kt       Shared rendering palette
 ```
 
@@ -587,6 +594,8 @@ on the same device for hands-on speed tuning.
 
 ## Lesson 10: a chasing BCU defender
 
+This describes the pursuit checkpoint before the collision lesson below.
+
 Branch: `bayne/chasing-enemy`, created from local `develop` after merging the
 completed touch lesson locally. Those lesson merges have not been pushed to
 remote `develop` yet.
@@ -659,3 +668,69 @@ and shared Kotlin compilation for the iOS ARM64 simulator. On the connected
 Samsung SM-G990U, screenshot-based position checks confirmed the maroon defender
 was visible, advanced toward the runner, and turned toward a new target after
 a tap. The debug build was installed and reopened on that device for testing.
+
+## Lesson 11: tackles and restart
+
+Branch: `bayne/collisions`. The completed chasing lesson was saved as commit
+`8cd8a98` and merged into local `develop` before creating this branch. These
+local lesson merges have not been pushed to remote `develop` yet.
+
+Two circles touch when the distance between their centers is at most their
+combined radii. For radii 18 and 18, first contact is at distance 36:
+
+```text
+distance <= runner radius + defender radius
+```
+
+`game/physics/PlayerCollision.kt` adds `Player.touches(other, arenaSize)`.
+The code compares squared values instead of computing a square root:
+
+```text
+dx * dx + dy * dy <= combinedRadius * combinedRadius
+```
+
+Both quantities are nonnegative, so this gives the same result. Equality counts
+as contact. The radii come from `radiusIn(arenaSize)`, matching the circles
+actually drawn when the arena is very small.
+
+`game/model/RunStatus.kt` names the two current states: `Running` and `Tackled`.
+`ArenaState` owns their transitions. It checks contact after tap positioning,
+after resizing, and before and after the movement steps in a frame. Checking
+immediately after the runner moves prevents the defender's later movement from
+hiding that contact. These are discrete circle checks; this lesson does not
+calculate continuous contact along an entire movement path.
+
+When contact occurs, status becomes `Tackled`. `isRunning` becomes false, the
+frame loop is cancelled, and field input modifiers are removed. Removing input
+also clears stored keyboard and touch state. State methods independently reject
+movement while tackled, so an extra callback cannot move a stopped run.
+
+`ui/arena/TackleOverlay.kt` shows a compact result card above the dimmed field.
+Its Try again action uses Compose's clickable behavior and button semantics,
+so it supports tapping and keyboard activation. The arena stays measured under
+the card; its players stop where contact was detected.
+
+Restart clears recorded input, resets status, and places both players at their
+initial positions using the current field size. The frame loop starts with a
+fresh timestamp, so time spent on the result screen does not become a movement
+jump. If a field is too small to separate the players, contact is detected again
+rather than allowing overlapping spawns to continue.
+
+Try leaving the runner still until the defender reaches it. The Tackled card
+should appear. Dragging or tapping the field should not move either player.
+Choose Try again and evade the defender using touch or keyboard input.
+
+Experiment: change the player radius from `18.dp` to `24.dp`. Predict the new
+center distance that counts as contact. At a display density of one, the sum is
+48 pixels; other densities scale both radii consistently.
+
+Tests cover exact contact, a small gap, diagonal distance, overlap, visible radii,
+frame contact, input after a tackle, restart, and resize-induced contact.
+
+### Tackle verification
+
+All 43 unit tests passed, along with desktop and Android builds and shared
+Kotlin compilation for the iOS ARM64 simulator. On the connected Samsung,
+verified the tackle result card, a frozen field despite drag input, restart,
+and a second pursuit/tackle cycle. Inspected the result-card screenshot for
+readable text and button layout. The debug build is installed on that device.

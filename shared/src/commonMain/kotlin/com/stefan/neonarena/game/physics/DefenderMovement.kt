@@ -9,8 +9,8 @@ import com.stefan.neonarena.game.model.Player
  *
  * Normalizing the target displacement gives direction independently of distance.
  * Travel is limited to the remaining distance to prevent overshooting. Matching
- * centers need no normalization, which avoids dividing by zero. Contact rules
- * are separate; this lesson allows the players to overlap.
+ * centers need no normalization, which avoids dividing by zero. ArenaState owns
+ * contact outcomes; this function only calculates pursuit.
  *
  * @author Stefan Bayne
  * @since 2026-11-27
