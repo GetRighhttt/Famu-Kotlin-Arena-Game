@@ -2,11 +2,12 @@
 
 A Compose Multiplatform game built as a sequence of runnable lessons.
 
-## Current lesson: draw-arena
+## Current lesson: draw-player
 
-`Canvas` supplies a drawing area. Its modifiers leave room for system insets
-and 24.dp of outer padding. `drawRect` fills the arena; a border marks its
-boundary. Drawing coordinates start at the canvas top-left after padding.
+The arena is drawn first, followed by a cyan circle. `Offset` gives its center
+in pixels. Half the canvas width and height places it in the middle.
+`18.dp.toPx()` converts the radius for the display density. Positive x goes
+right; positive y goes down. Resizing recalculates the center.
 
 ## Run
 
@@ -21,8 +22,8 @@ Use JDK 17 or newer and configure your Android SDK in ignored `local.properties`
 
 ## Experiment
 
-Change `24.dp` to `48.dp`. Predict whether the arena grows or shrinks.
-Run again and compare its distance from the window edges.
+Change the x-coordinate to `size.width * 0.25f`. Predict where the circle
+will appear. Then change its radius and compare the results.
 
 ## Lesson branches
 

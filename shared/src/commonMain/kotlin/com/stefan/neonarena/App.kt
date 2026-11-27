@@ -9,11 +9,12 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 /**
- * Draws the arena within safe screen insets and a visible boundary.
+ * Draws a player circle at the center of the arena using local pixel coordinates.
  *
  * @author Stefan Bayne
  * @since 2026-11-27
@@ -30,5 +31,12 @@ fun App() {
             .clipToBounds(),
     ) {
         drawRect(color = Color(0xFF101B2A))
+        val playerPosition = Offset(size.width / 2f, size.height / 2f)
+        val playerRadius = 18.dp.toPx()
+        drawCircle(
+            color = Color(0xFF66FFE3),
+            radius = playerRadius,
+            center = playerPosition,
+        )
     }
 }
